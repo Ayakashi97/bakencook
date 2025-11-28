@@ -454,7 +454,7 @@ export default function RecipeDetail() {
                                         <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                                             <Users className="w-4 h-4" /> {recipe.yield_amount} {t('recipe.portions') || "Portionen"}
                                         </div>
-                                        {recipe.weight_per_piece && (recipe.type === 'baking' || !recipe.type) && (
+                                        {!!recipe.weight_per_piece && (recipe.type === 'baking' || !recipe.type) && (
                                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                                                 <Scale className="w-4 h-4" /> {recipe.weight_per_piece} g/Stk
                                             </div>
@@ -711,7 +711,7 @@ export default function RecipeDetail() {
                                                             <span className="font-mono font-medium">
                                                                 {scaleAmount(ing.amount)} {ing.unit}
                                                             </span>
-                                                            {(recipe.type === 'baking' || !recipe.type) && ing.temperature && (
+                                                            {(recipe.type === 'baking' || !recipe.type) && !!ing.temperature && (
                                                                 <span className="bg-muted px-1.5 py-0.5 rounded text-xs text-muted-foreground">
                                                                     {ing.temperature}°C
                                                                 </span>
@@ -1295,7 +1295,7 @@ function IngredientOverviewModal({ recipe, currentYield, onClose }: { recipe: Re
                                     <span className="font-mono font-bold text-foreground">
                                         {scaleAmount(ing.amount)} {ing.unit}
                                     </span>
-                                    {ing.temperature && (
+                                    {!!ing.temperature && (
                                         <span className="bg-secondary px-1.5 py-0.5 rounded text-xs">
                                             {ing.temperature}°C
                                         </span>

@@ -52,9 +52,13 @@ if [ ! -f ".env" ]; then
     
     # Update .env
     sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASS|" .env
-    sed -i "s|@db|@localhost|" .env
     sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET|" .env
     sed -i "s|POSTGRES_USER=.*|POSTGRES_USER=bakencook|" .env
+    
+    # Construct and set fully expanded DATABASE_URL
+    # Systemd does not expand variables, so we must write the full URL
+    DB_URL="postgresql://bakencook:$DB_PASS@localhost/bakencook"
+    sed -i "s|DATABASE_URL=.*|DATABASE_URL=$DB_URL|" .env
     
     log ".env created with generated passwords."
 else
@@ -62,10 +66,26 @@ else
 fi
 
 # FORCE FIXES for Local Install (in case .env was copied from docker or is old)
+# 1. Fix Host (db -> localhost)
 if grep -q "@db" .env; then
     log "Fixing database host in .env (db -> localhost)..."
     sed -i "s|@db|@localhost|" .env
 fi
+
+# 2. Fix Unexpanded Variables (Systemd doesn't support ${VAR})
+if grep -q "\${" .env; then
+    log "Fixing unexpanded variables in .env..."
+    # Extract current values (assuming simple format)
+    CURRENT_USER=$(grep "^POSTGRES_USER=" .env | cut -d '=' -f2)
+    CURRENT_PASS=$(grep "^POSTGRES_PASSWORD=" .env | cut -d '=' -f2)
+    CURRENT_DB=$(grep "^POSTGRES_DB=" .env | cut -d '=' -f2)
+    
+    # Construct new URL
+    NEW_URL="postgresql://$CURRENT_USER:$CURRENT_PASS@localhost/$CURRENT_DB"
+    sed -i "s|DATABASE_URL=.*|DATABASE_URL=$NEW_URL|" .env
+fi
+
+if ! grep -q "VITE_API_URL" .env; then
 
 if ! grep -q "VITE_API_URL" .env; then
     log "Adding VITE_API_URL to .env..."

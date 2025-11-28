@@ -29,9 +29,12 @@ mkdir -p "$BACKUP_DIR"
 echo "Backing up database to $BACKUP_FILE..."
 
 # Check if running in Docker
+echo "Checking for running container: $CONTAINER_NAME..."
 if command -v docker &> /dev/null && docker ps | grep -q "$CONTAINER_NAME"; then
+    echo "Container found. Using docker exec..."
     docker exec -t "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
 else
+    echo "Container not found or docker not available. Falling back to local pg_dump..."
     # Try local pg_dump
     if command -v pg_dump &> /dev/null; then
         echo "Using local pg_dump with password auth..."

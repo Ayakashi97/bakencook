@@ -40,7 +40,8 @@ echo "Updating Backend..."
 cd "$BACKEND_DIR"
 # Install python dependencies
 if [ -f "requirements.txt" ]; then
-    python -m pip install -r requirements.txt
+    echo "Installing Python dependencies..."
+    python3 -m pip install -r requirements.txt
 fi
 
 # Run Migrations
@@ -49,7 +50,8 @@ echo "Running Database Migrations..."
 if [ -f "alembic.ini" ]; then
     # If this is the first run, we might need to stamp the DB if it already exists
     # But for now, let's just upgrade
-    python -m alembic upgrade head
+    echo "Upgrading database..."
+    python3 -m alembic upgrade head
 fi
 
 # 4. Update Frontend

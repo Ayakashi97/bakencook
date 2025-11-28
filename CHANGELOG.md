@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.7] - 2025-11-28
+### Changes
+- chore: update dependencies
+
 ## [1.0.6] - 2025-11-28
 ### Changes
 - feat: import `useEffect` hook and `Modal` component

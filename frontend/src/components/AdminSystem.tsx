@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, Activity } from 'lucide-react';
+import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
 import { Modal } from '../components/Modal';
-import SystemStatus from './SystemStatus';
 
 
 export default function AdminSystem() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'status' | 'general' | 'access' | 'ai' | 'email'>('status');
+    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email'>('general');
 
     return (
         <div className="space-y-6">
@@ -26,7 +25,6 @@ export default function AdminSystem() {
                 <div className="border-b border-white/10">
                     <nav className="flex -mb-px px-6 overflow-x-auto">
                         {[
-                            { id: 'status', label: t('admin.tab_status', 'Status'), icon: Activity },
                             { id: 'general', label: t('admin.settings_general', 'General'), icon: Globe },
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
                             { id: 'ai', label: t('admin.settings_ai', 'AI Features'), icon: Cpu },
@@ -50,7 +48,6 @@ export default function AdminSystem() {
                 </div>
 
                 <div className="p-6">
-                    {activeTab === 'status' && <SystemStatus />}
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}

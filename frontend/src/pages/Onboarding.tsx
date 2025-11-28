@@ -14,26 +14,46 @@ const steps = [
     { id: 'data', title: 'Data Import', icon: Database },
 ];
 
+interface OnboardingForm extends SystemInit {
+    enable_ai: boolean;
+    enable_smtp: boolean;
+}
+
 export default function Onboarding() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFaviconModal, setShowFaviconModal] = useState(false);
 
-    const { register, handleSubmit, setValue, watch, getValues, formState: { errors } } = useForm<SystemInit>({
+    const { register, handleSubmit, setValue, watch, getValues, formState: { errors } } = useForm<OnboardingForm>({
         defaultValues: {
             app_name: 'Bake’n’Cook',
             import_data: true,
             smtp_port: 587,
-            favicon_base64: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍🍳</text></svg>'
+            favicon_base64: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍🍳</text></svg>',
+            enable_ai: true,
+            enable_smtp: false
         }
     });
 
     const faviconPreview = watch('favicon_base64');
+    const enableAi = watch('enable_ai');
+    const enableSmtp = watch('enable_smtp');
 
-    const onSubmit = async (data: SystemInit) => {
+    const onSubmit = async (data: OnboardingForm) => {
         setIsSubmitting(true);
         try {
-            await initializeSystem(data);
+            // Clean up data based on toggles
+            const payload: SystemInit = {
+                ...data,
+                gemini_api_key: data.enable_ai ? data.gemini_api_key : undefined,
+                smtp_server: data.enable_smtp ? data.smtp_server : undefined,
+                smtp_port: data.enable_smtp ? data.smtp_port : undefined,
+                smtp_user: data.enable_smtp ? data.smtp_user : undefined,
+                smtp_password: data.enable_smtp ? data.smtp_password : undefined,
+                sender_email: data.enable_smtp ? data.sender_email : undefined,
+            };
+
+            await initializeSystem(payload);
             toast.success('System initialized successfully!');
             // Force reload to clear any cached state and ensure fresh start
             window.location.href = '/login';
@@ -74,6 +94,37 @@ export default function Onboarding() {
             if (admin_password.length < 8) {
                 toast.error('Password must be at least 8 characters');
                 return;
+            }
+        }
+
+        // Validation for Configuration Step (Index 2)
+        if (currentStep === 2) {
+            const values = getValues();
+
+            if (values.enable_ai) {
+                if (!values.gemini_api_key || !values.gemini_api_key.trim()) {
+                    toast.error('Please enter a Gemini API Key');
+                    return;
+                }
+            }
+
+            if (values.enable_smtp) {
+                if (!values.smtp_server || !values.smtp_server.trim()) {
+                    toast.error('Please enter an SMTP Server');
+                    return;
+                }
+                if (!values.smtp_port) {
+                    toast.error('Please enter an SMTP Port');
+                    return;
+                }
+                if (!values.smtp_user || !values.smtp_user.trim()) {
+                    toast.error('Please enter an SMTP User');
+                    return;
+                }
+                if (!values.smtp_password || !values.smtp_password.trim()) {
+                    toast.error('Please enter an SMTP Password');
+                    return;
+                }
             }
         }
 
@@ -199,16 +250,25 @@ export default function Onboarding() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
-                                            <h3 className="text-lg font-medium text-amber-400">AI Integration</h3>
-                                            <label className="block">
-                                                <span className="text-gray-300 text-sm font-medium mb-1 block">Gemini API Key</span>
-                                                <input
-                                                    {...register('gemini_api_key')}
-                                                    type="password"
-                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                    placeholder="AIza..."
-                                                />
-                                            </label>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-medium text-amber-400">AI Integration</h3>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" {...register('enable_ai')} className="sr-only peer" />
+                                                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
+                                                </label>
+                                            </div>
+
+                                            {enableAi && (
+                                                <label className="block animate-in fade-in slide-in-from-top-2">
+                                                    <span className="text-gray-300 text-sm font-medium mb-1 block">Gemini API Key</span>
+                                                    <input
+                                                        {...register('gemini_api_key')}
+                                                        type="password"
+                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                        placeholder="AIza..."
+                                                    />
+                                                </label>
+                                            )}
 
                                             <h3 className="text-lg font-medium text-amber-400 mt-6">Branding</h3>
                                             <label className="block">
@@ -233,43 +293,54 @@ export default function Onboarding() {
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h3 className="text-lg font-medium text-amber-400">Email (SMTP)</h3>
-                                            <label className="block">
-                                                <span className="text-gray-300 text-sm font-medium mb-1 block">SMTP Server</span>
-                                                <input
-                                                    {...register('smtp_server')}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                    placeholder="smtp.gmail.com"
-                                                />
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <label className="block">
-                                                    <span className="text-gray-300 text-sm font-medium mb-1 block">Port</span>
-                                                    <input
-                                                        type="number"
-                                                        {...register('smtp_port')}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                        placeholder="587"
-                                                    />
-                                                </label>
-                                                <label className="block">
-                                                    <span className="text-gray-300 text-sm font-medium mb-1 block">User</span>
-                                                    <input
-                                                        {...register('smtp_user')}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                        placeholder="user@gmail.com"
-                                                    />
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-medium text-amber-400">Email (SMTP)</h3>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" {...register('enable_smtp')} className="sr-only peer" />
+                                                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
                                                 </label>
                                             </div>
-                                            <label className="block">
-                                                <span className="text-gray-300 text-sm font-medium mb-1 block">Password</span>
-                                                <input
-                                                    type="password"
-                                                    {...register('smtp_password')}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                    placeholder="App Password"
-                                                />
-                                            </label>
+
+                                            {enableSmtp && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <label className="block">
+                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">SMTP Server</span>
+                                                        <input
+                                                            {...register('smtp_server')}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                            placeholder="smtp.gmail.com"
+                                                        />
+                                                    </label>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <label className="block">
+                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Port</span>
+                                                            <input
+                                                                type="number"
+                                                                {...register('smtp_port')}
+                                                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                                placeholder="587"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">User</span>
+                                                            <input
+                                                                {...register('smtp_user')}
+                                                                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                                placeholder="user@gmail.com"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    <label className="block">
+                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">Password</span>
+                                                        <input
+                                                            type="password"
+                                                            {...register('smtp_password')}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                            placeholder="App Password"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

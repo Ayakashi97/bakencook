@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.1-beta.1] - 2025-11-28
+## [1.0.2-beta.1] - 2025-11-28
 ### Added
 - Beta release channel support.
 - Automated update scripts.

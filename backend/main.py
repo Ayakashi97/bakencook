@@ -1937,8 +1937,8 @@ def test_email_config(
     try:
         import smtplib
         from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-
+        from email.header import Header
+        
         msg = MIMEMultipart()
         msg['From'] = request.sender_email
         msg['To'] = request.test_recipient
@@ -1946,10 +1946,10 @@ def test_email_config(
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "BakeAssist"
 
-        msg['Subject'] = f"{app_name} Email Configuration Test"
+        msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
         
         body = f"Hello {current_user.username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         server = smtplib.SMTP(request.smtp_server, request.smtp_port)
         server.starttls()

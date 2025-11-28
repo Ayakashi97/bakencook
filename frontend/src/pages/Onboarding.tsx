@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -24,6 +25,7 @@ interface OnboardingForm extends SystemInit {
 }
 
 export default function Onboarding() {
+    const { t } = useTranslation();
     const [currentStep, setCurrentStep] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFaviconModal, setShowFaviconModal] = useState(false);
@@ -124,19 +126,23 @@ export default function Onboarding() {
 
             if (values.enable_smtp) {
                 if (!values.smtp_server || !values.smtp_server.trim()) {
-                    toast.error('Please enter an SMTP Server');
+                    toast.error(t('onboarding.config.smtp_server') + ' required');
                     return;
                 }
                 if (!values.smtp_port) {
-                    toast.error('Please enter an SMTP Port');
+                    toast.error(t('onboarding.config.smtp_port') + ' required');
                     return;
                 }
                 if (!values.smtp_user || !values.smtp_user.trim()) {
-                    toast.error('Please enter an SMTP User');
+                    toast.error(t('onboarding.config.smtp_user') + ' required');
                     return;
                 }
                 if (!values.smtp_password || !values.smtp_password.trim()) {
-                    toast.error('Please enter an SMTP Password');
+                    toast.error(t('onboarding.config.smtp_password') + ' required');
+                    return;
+                }
+                if (!values.sender_email || !values.sender_email.trim()) {
+                    toast.error(t('onboarding.config.sender_email') + ' required');
                     return;
                 }
             }
@@ -163,9 +169,9 @@ export default function Onboarding() {
                 <div className="w-full md:w-1/3 bg-black/20 p-8 flex flex-col justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-2 bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">
-                            Setup
+                            {t('onboarding.sidebar.title')}
                         </h1>
-                        <p className="text-gray-400 text-sm mb-8">Configure your new instance</p>
+                        <p className="text-gray-400 text-sm mb-8">{t('onboarding.sidebar.subtitle')}</p>
 
                         <div className="space-y-6">
                             {steps.map((step, index) => {
@@ -184,7 +190,7 @@ export default function Onboarding() {
                                             {isCompleted ? <Check size={20} /> : <Icon size={20} />}
                                         </div>
                                         <div>
-                                            <p className={`font-medium ${isActive ? 'text-white' : 'text-gray-500'}`}>{step.title}</p>
+                                            <p className={`font-medium ${isActive ? 'text-white' : 'text-gray-500'}`}>{t(`onboarding.steps.${step.id}`)}</p>
                                         </div>
                                     </div>
                                 );
@@ -193,7 +199,7 @@ export default function Onboarding() {
                     </div>
 
                     <div className="text-xs text-gray-500">
-                        v1.0.0 • Bake'n'Cook
+                        {t('onboarding.sidebar.version', { appName: "Bake'n'Cook" })}
                     </div>
                 </div>
 
@@ -204,19 +210,18 @@ export default function Onboarding() {
                         <div className="flex-1">
                             {currentStep === 0 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <h2 className="text-2xl font-bold text-white mb-4">Welcome to Bake'n'Cook</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-4">{t('onboarding.welcome.title', { appName: "Bake'n'Cook" })}</h2>
                                     <p className="text-gray-300 mb-8">
-                                        Let's get your personal cooking and baking assistant set up.
-                                        We'll configure the basics so you can start creating delicious recipes right away.
+                                        {t('onboarding.welcome.subtitle')}
                                     </p>
 
                                     <div className="space-y-4">
                                         <label className="block">
-                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Application Name</span>
+                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.welcome.app_name')}</span>
                                             <input
                                                 {...register('app_name', { required: true })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                placeholder="e.g. My Kitchen"
+                                                placeholder={t('onboarding.welcome.app_name_placeholder')}
                                             />
                                         </label>
                                     </div>
@@ -225,34 +230,34 @@ export default function Onboarding() {
 
                             {currentStep === 1 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <h2 className="text-2xl font-bold text-white mb-4">Create Admin User</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-4">{t('onboarding.admin.title')}</h2>
                                     <div className="space-y-4">
                                         <label className="block">
-                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Username</span>
+                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.admin.username')}</span>
                                             <input
                                                 {...register('admin_username', { required: true })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                placeholder="admin"
+                                                placeholder={t('onboarding.admin.username_placeholder')}
                                             />
                                         </label>
                                         <label className="block">
-                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Email</span>
+                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.admin.email')}</span>
                                             <input
                                                 type="email"
                                                 {...register('admin_email', { required: true })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                placeholder="admin@example.com"
+                                                placeholder={t('onboarding.admin.email_placeholder')}
                                             />
                                         </label>
                                         <label className="block">
-                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Password</span>
+                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.admin.password')}</span>
                                             <input
                                                 type="password"
                                                 {...register('admin_password', { required: true, minLength: 8 })}
                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                placeholder="••••••••"
+                                                placeholder={t('onboarding.admin.password_placeholder')}
                                             />
-                                            {errors.admin_password && <span className="text-red-400 text-xs mt-1">Min 8 characters</span>}
+                                            {errors.admin_password && <span className="text-red-400 text-xs mt-1">{t('onboarding.admin.password_hint')}</span>}
                                         </label>
                                     </div>
                                 </div>
@@ -260,12 +265,12 @@ export default function Onboarding() {
 
                             {currentStep === 2 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <h2 className="text-2xl font-bold text-white mb-4">System Configuration</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-4">{t('onboarding.config.title')}</h2>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="text-lg font-medium text-amber-400">AI Integration</h3>
+                                                <h3 className="text-lg font-medium text-amber-400">{t('onboarding.config.ai_integration')}</h3>
                                                 <label className="relative inline-flex items-center cursor-pointer">
                                                     <input type="checkbox" {...register('enable_ai')} className="sr-only peer" />
                                                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
@@ -274,19 +279,19 @@ export default function Onboarding() {
 
                                             {enableAi && (
                                                 <label className="block animate-in fade-in slide-in-from-top-2">
-                                                    <span className="text-gray-300 text-sm font-medium mb-1 block">Gemini API Key</span>
+                                                    <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.gemini_key')}</span>
                                                     <input
                                                         {...register('gemini_api_key')}
                                                         type="password"
                                                         className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                        placeholder="AIza..."
+                                                        placeholder={t('onboarding.config.gemini_key_placeholder')}
                                                     />
                                                 </label>
                                             )}
 
-                                            <h3 className="text-lg font-medium text-amber-400 mt-6">Branding</h3>
+                                            <h3 className="text-lg font-medium text-amber-400 mt-6">{t('onboarding.config.branding')}</h3>
                                             <label className="block">
-                                                <span className="text-gray-300 text-sm font-medium mb-1 block">Favicon</span>
+                                                <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.favicon')}</span>
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
                                                         {faviconPreview ? (
@@ -300,7 +305,7 @@ export default function Onboarding() {
                                                         onClick={() => setShowFaviconModal(true)}
                                                         className="text-sm text-amber-400 hover:text-amber-300 hover:underline font-medium"
                                                     >
-                                                        Select Favicon
+                                                        {t('onboarding.config.select_favicon')}
                                                     </button>
                                                 </div>
                                             </label>
@@ -308,7 +313,7 @@ export default function Onboarding() {
 
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="text-lg font-medium text-amber-400">Email (SMTP)</h3>
+                                                <h3 className="text-lg font-medium text-amber-400">{t('onboarding.config.email_smtp')}</h3>
                                                 <label className="relative inline-flex items-center cursor-pointer">
                                                     <input type="checkbox" {...register('enable_smtp')} className="sr-only peer" />
                                                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
@@ -318,39 +323,48 @@ export default function Onboarding() {
                                             {enableSmtp && (
                                                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                                                     <label className="block">
-                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">SMTP Server</span>
+                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.smtp_server')}</span>
                                                         <input
                                                             {...register('smtp_server')}
                                                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                            placeholder="smtp.gmail.com"
+                                                            placeholder={t('onboarding.config.smtp_server_placeholder')}
                                                         />
                                                     </label>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <label className="block">
-                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">Port</span>
+                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.smtp_port')}</span>
                                                             <input
                                                                 type="number"
                                                                 {...register('smtp_port')}
                                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                                placeholder="587"
+                                                                placeholder={t('onboarding.config.smtp_port_placeholder')}
                                                             />
                                                         </label>
                                                         <label className="block">
-                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">User</span>
+                                                            <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.smtp_user')}</span>
                                                             <input
                                                                 {...register('smtp_user')}
                                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                                placeholder="user@gmail.com"
+                                                                placeholder={t('onboarding.config.smtp_user_placeholder')}
                                                             />
                                                         </label>
                                                     </div>
                                                     <label className="block">
-                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">Password</span>
+                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.smtp_password')}</span>
                                                         <input
                                                             type="password"
                                                             {...register('smtp_password')}
                                                             className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
-                                                            placeholder="App Password"
+                                                            placeholder={t('onboarding.config.smtp_password_placeholder')}
+                                                        />
+                                                    </label>
+                                                    <label className="block">
+                                                        <span className="text-gray-300 text-sm font-medium mb-1 block">{t('onboarding.config.sender_email')}</span>
+                                                        <input
+                                                            type="email"
+                                                            {...register('sender_email')}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition-colors"
+                                                            placeholder={t('onboarding.config.sender_email_placeholder')}
                                                         />
                                                     </label>
                                                 </div>
@@ -362,17 +376,17 @@ export default function Onboarding() {
 
                             {currentStep === 3 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <h2 className="text-2xl font-bold text-white mb-4">Access & Security</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-4">{t('onboarding.access.title')}</h2>
                                     <p className="text-gray-300 mb-8">
-                                        Configure who can access your instance and how users are verified.
+                                        {t('onboarding.access.subtitle')}
                                     </p>
 
                                     <div className="space-y-6">
                                         <div className="bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between">
                                             <div>
-                                                <span className="text-white font-medium block">Enable Registration</span>
+                                                <span className="text-white font-medium block">{t('onboarding.access.enable_registration')}</span>
                                                 <span className="text-gray-400 text-sm block mt-1">
-                                                    Allow new users to create accounts.
+                                                    {t('onboarding.access.enable_registration_desc')}
                                                 </span>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
@@ -383,13 +397,13 @@ export default function Onboarding() {
 
                                         <div className={`bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between transition-opacity ${!enableSmtp ? 'opacity-50 cursor-not-allowed' : ''}`}>
                                             <div>
-                                                <span className="text-white font-medium block">Require Email Verification</span>
+                                                <span className="text-white font-medium block">{t('onboarding.access.require_verification')}</span>
                                                 <span className="text-gray-400 text-sm block mt-1">
-                                                    New users must verify their email before logging in. (Requires SMTP)
+                                                    {t('onboarding.access.require_verification_desc')}
                                                 </span>
                                                 {!enableSmtp && (
                                                     <span className="text-amber-400 text-xs block mt-2 font-medium">
-                                                        Requires SMTP to be enabled in Configuration step.
+                                                        {t('onboarding.access.require_verification_warning')}
                                                     </span>
                                                 )}
                                             </div>
@@ -406,9 +420,9 @@ export default function Onboarding() {
 
                                         <div className="bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between">
                                             <div>
-                                                <span className="text-white font-medium block">Allow Guest Access</span>
+                                                <span className="text-white font-medium block">{t('onboarding.access.allow_guest')}</span>
                                                 <span className="text-gray-400 text-sm block mt-1">
-                                                    Allow public access to recipes marked as public without login.
+                                                    {t('onboarding.access.allow_guest_desc')}
                                                 </span>
                                             </div>
                                             <label className="relative inline-flex items-center cursor-pointer">
@@ -422,10 +436,9 @@ export default function Onboarding() {
 
                             {currentStep === 4 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                                    <h2 className="text-2xl font-bold text-white mb-4">Data Initialization</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-4">{t('onboarding.data.title')}</h2>
                                     <p className="text-gray-300 mb-8">
-                                        We can pre-fill your database with common ingredients and units to help you get started faster.
-                                        This includes extensive lists for both cooking and baking in English and German.
+                                        {t('onboarding.data.subtitle')}
                                     </p>
 
                                     <div className="bg-white/5 border border-white/10 rounded-xl p-6">
@@ -439,9 +452,9 @@ export default function Onboarding() {
                                                 <Check size={16} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-black opacity-0 peer-checked:opacity-100 pointer-events-none" />
                                             </div>
                                             <div>
-                                                <span className="text-white font-medium block">Import Standard Data</span>
+                                                <span className="text-white font-medium block">{t('onboarding.data.import_standard')}</span>
                                                 <span className="text-gray-400 text-sm block mt-1">
-                                                    Includes 50+ common ingredients (Flours, Dairy, Vegetables, Spices) and standard units (g, ml, tsp, tbsp, etc.) correctly linked.
+                                                    {t('onboarding.data.import_standard_desc')}
                                                 </span>
                                             </div>
                                         </label>
@@ -457,7 +470,7 @@ export default function Onboarding() {
                                 onClick={prevStep}
                                 className={`px-6 py-2 rounded-lg text-gray-400 hover:text-white transition-colors ${currentStep === 0 ? 'invisible' : ''}`}
                             >
-                                Back
+                                {t('onboarding.buttons.back')}
                             </button>
 
                             <button
@@ -469,13 +482,13 @@ export default function Onboarding() {
                                 {isSubmitting ? (
                                     <>
                                         <Loader2 size={20} className="animate-spin" />
-                                        Setting up...
+                                        {t('onboarding.buttons.setting_up')}
                                     </>
                                 ) : currentStep === steps.length - 1 ? (
-                                    'Finish Setup'
+                                    t('onboarding.buttons.finish')
                                 ) : (
                                     <>
-                                        Next <ChevronRight size={20} />
+                                        {t('onboarding.buttons.next')} <ChevronRight size={20} />
                                     </>
                                 )}
                             </button>

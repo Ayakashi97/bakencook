@@ -347,6 +347,79 @@ i18n
                     "search.navigate": "Navigate",
                     "search.brand": "{{appName}} Search",
                     "common.unknown": "Unknown",
+                    "onboarding": {
+                        "steps": {
+                            "welcome": "Welcome",
+                            "admin": "Admin User",
+                            "config": "Configuration",
+                            "access": "Access & Security",
+                            "data": "Data Import"
+                        },
+                        "welcome": {
+                            "title": "Welcome to {{appName}}",
+                            "subtitle": "Let's get your personal cooking and baking assistant set up. We'll configure the basics so you can start creating delicious recipes right away.",
+                            "app_name": "Application Name",
+                            "app_name_placeholder": "e.g. My Kitchen"
+                        },
+                        "admin": {
+                            "title": "Create Admin User",
+                            "username": "Username",
+                            "username_placeholder": "admin",
+                            "email": "Email",
+                            "email_placeholder": "admin@example.com",
+                            "password": "Password",
+                            "password_placeholder": "••••••••",
+                            "password_hint": "Min 8 characters"
+                        },
+                        "config": {
+                            "title": "System Configuration",
+                            "ai_integration": "AI Integration",
+                            "gemini_key": "Gemini API Key",
+                            "gemini_key_placeholder": "AIza...",
+                            "branding": "Branding",
+                            "favicon": "Favicon",
+                            "select_favicon": "Select Favicon",
+                            "email_smtp": "Email (SMTP)",
+                            "smtp_server": "SMTP Server",
+                            "smtp_server_placeholder": "smtp.gmail.com",
+                            "smtp_port": "Port",
+                            "smtp_port_placeholder": "587",
+                            "smtp_user": "User",
+                            "smtp_user_placeholder": "user@gmail.com",
+                            "smtp_password": "Password",
+                            "smtp_password_placeholder": "App Password",
+                            "sender_email": "Sender Email",
+                            "sender_email_placeholder": "noreply@example.com"
+                        },
+                        "access": {
+                            "title": "Access & Security",
+                            "subtitle": "Configure who can access your instance and how users are verified.",
+                            "enable_registration": "Enable Registration",
+                            "enable_registration_desc": "Allow new users to create accounts.",
+                            "require_verification": "Require Email Verification",
+                            "require_verification_desc": "New users must verify their email before logging in. (Requires SMTP)",
+                            "require_verification_warning": "Requires SMTP to be enabled in Configuration step.",
+                            "allow_guest": "Allow Guest Access",
+                            "allow_guest_desc": "Allow public access to recipes marked as public without login."
+                        },
+                        "data": {
+                            "title": "Data Initialization",
+                            "subtitle": "We can pre-fill your database with common ingredients and units to help you get started faster. This includes extensive lists for both cooking and baking in English and German.",
+                            "import_standard": "Import Standard Data",
+                            "import_standard_desc": "Includes 50+ common ingredients (Flours, Dairy, Vegetables, Spices) and standard units (g, ml, tsp, tbsp, etc.) correctly linked."
+                        },
+                        "buttons": {
+                            "back": "Back",
+                            "next": "Next",
+                            "finish": "Finish Setup",
+                            "setting_up": "Setting up..."
+                        },
+                        "sidebar": {
+                            "title": "Setup",
+                            "subtitle": "Configure your new instance",
+                            "version": "v1.0.0 • {{appName}}"
+                        }
+                    },
 
                 }
             },
@@ -741,6 +814,79 @@ i18n
                     "search.navigate": "Navigieren",
                     "search.brand": "{{appName}} Suche",
                     "common.unknown": "Unbekannt",
+                    "onboarding": {
+                        "steps": {
+                            "welcome": "Willkommen",
+                            "admin": "Admin Benutzer",
+                            "config": "Konfiguration",
+                            "access": "Zugriff & Sicherheit",
+                            "data": "Datenimport"
+                        },
+                        "welcome": {
+                            "title": "Willkommen bei {{appName}}",
+                            "subtitle": "Lassen Sie uns Ihren persönlichen Koch- und Backassistenten einrichten. Wir konfigurieren die Grundlagen, damit Sie sofort loslegen können.",
+                            "app_name": "Name der Anwendung",
+                            "app_name_placeholder": "z.B. Meine Küche"
+                        },
+                        "admin": {
+                            "title": "Admin Benutzer erstellen",
+                            "username": "Benutzername",
+                            "username_placeholder": "admin",
+                            "email": "E-Mail",
+                            "email_placeholder": "admin@beispiel.de",
+                            "password": "Passwort",
+                            "password_placeholder": "••••••••",
+                            "password_hint": "Min. 8 Zeichen"
+                        },
+                        "config": {
+                            "title": "Systemkonfiguration",
+                            "ai_integration": "KI-Integration",
+                            "gemini_key": "Gemini API Key",
+                            "gemini_key_placeholder": "AIza...",
+                            "branding": "Branding",
+                            "favicon": "Favicon",
+                            "select_favicon": "Favicon auswählen",
+                            "email_smtp": "E-Mail (SMTP)",
+                            "smtp_server": "SMTP Server",
+                            "smtp_server_placeholder": "smtp.gmail.com",
+                            "smtp_port": "Port",
+                            "smtp_port_placeholder": "587",
+                            "smtp_user": "Benutzer",
+                            "smtp_user_placeholder": "user@gmail.com",
+                            "smtp_password": "Passwort",
+                            "smtp_password_placeholder": "App Passwort",
+                            "sender_email": "Absender E-Mail",
+                            "sender_email_placeholder": "noreply@beispiel.de"
+                        },
+                        "access": {
+                            "title": "Zugriff & Sicherheit",
+                            "subtitle": "Konfigurieren Sie, wer auf Ihre Instanz zugreifen kann und wie Benutzer verifiziert werden.",
+                            "enable_registration": "Registrierung aktivieren",
+                            "enable_registration_desc": "Neuen Benutzern erlauben, Konten zu erstellen.",
+                            "require_verification": "E-Mail-Verifizierung erzwingen",
+                            "require_verification_desc": "Neue Benutzer müssen ihre E-Mail bestätigen. (Benötigt SMTP)",
+                            "require_verification_warning": "Erfordert aktiviertes SMTP im Konfigurationsschritt.",
+                            "allow_guest": "Gastzugriff erlauben",
+                            "allow_guest_desc": "Öffentlichen Zugriff auf als öffentlich markierte Rezepte ohne Anmeldung erlauben."
+                        },
+                        "data": {
+                            "title": "Dateninitialisierung",
+                            "subtitle": "Wir können Ihre Datenbank mit gängigen Zutaten und Einheiten füllen, damit Sie schneller starten können. Dies umfasst umfangreiche Listen für Kochen und Backen in Deutsch und Englisch.",
+                            "import_standard": "Standarddaten importieren",
+                            "import_standard_desc": "Enthält 50+ gängige Zutaten (Mehl, Milchprodukte, Gemüse, Gewürze) und Standardeinheiten (g, ml, TL, EL, etc.), die korrekt verknüpft sind."
+                        },
+                        "buttons": {
+                            "back": "Zurück",
+                            "next": "Weiter",
+                            "finish": "Einrichtung abschließen",
+                            "setting_up": "Einrichten..."
+                        },
+                        "sidebar": {
+                            "title": "Setup",
+                            "subtitle": "Konfigurieren Sie Ihre neue Instanz",
+                            "version": "v1.0.0 • {{appName}}"
+                        }
+                    },
                     "recipe.real_temp": "Reale Temperatur (°C)",
                     "recipe.temp_adjustment_info": "Passive Schritte werden basierend auf der Temperaturdifferenz angepasst.",
                     "recipe.reference_temp": "Referenztemperatur (°C)",

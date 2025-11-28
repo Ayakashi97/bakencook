@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.6] - 2025-11-28
+### Changes
+- feat: import `useEffect` hook and `Modal` component
+
 ## [1.0.2-beta.29] - 2025-11-28
 ### Changes
 - feat: Implement retry logic with exponential backoff and specific 401 handling for user authentication.

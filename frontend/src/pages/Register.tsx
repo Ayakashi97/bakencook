@@ -12,10 +12,15 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
+
+    // Verification state
+    const [needsVerification, setNeedsVerification] = useState(false);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const { user, isLoading: authLoading } = useAuth();
+    const { login, user, isLoading: authLoading } = useAuth();
     const { appName, faviconUrl, enableRegistration, isLoading: settingsLoading } = useSystemSettings();
 
     useEffect(() => {
@@ -32,26 +37,68 @@ export default function Register() {
         }
     }, [user, authLoading, navigate]);
 
+    const performLogin = async () => {
+        try {
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            const res = await api.post('/token', formData);
+            login(res.data.access_token);
+        } catch (err) {
+            // Should not happen if registration was successful, but just in case
+            navigate('/login');
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
-        setSuccessMessage('');
 
         try {
             const res = await api.post('/register', { username, password, email });
             if (res.data.is_verified === false) {
-                setSuccessMessage(t('auth.verification_sent', 'Registration successful! Please check your email to verify your account.'));
-                setUsername('');
-                setPassword('');
-                setEmail('');
+                setNeedsVerification(true);
             } else {
-                navigate('/login');
+                // Auto login
+                await performLogin();
             }
         } catch (err: any) {
             setError(err.response?.data?.detail || t('auth.register_failed'));
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleVerification = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsVerifying(true);
+        try {
+            const res = await api.post('/auth/verify-email', { token: verificationCode });
+            // Verify endpoint returns access_token
+            if (res.data.access_token) {
+                login(res.data.access_token);
+            } else {
+                await performLogin();
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.detail || t('auth.verification_failed', 'Verification failed'));
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
+    const handleResendCode = async () => {
+        try {
+            if (email) {
+                await api.post('/auth/resend-verification', null, { params: { email } });
+            } else {
+                await api.post('/auth/resend-verification', null, { params: { username } });
+            }
+            // toast.success(t('auth.code_resent', 'Verification code resent!')); 
+            // We don't have toast here, maybe add it or just ignore
+        } catch (err: any) {
+            setError(err.response?.data?.detail || 'Failed to resend code');
         }
     };
 
@@ -87,15 +134,49 @@ export default function Register() {
                     <p className="text-muted-foreground mt-2">{t('register.subtitle', { appName })}</p>
                 </div>
 
-                {successMessage ? (
-                    <div className="bg-green-500/10 text-green-600 p-4 rounded-lg text-center space-y-4 border border-green-500/20">
-                        <Mail className="h-12 w-12 mx-auto text-green-500" />
-                        <p className="font-medium">{successMessage}</p>
-                        <div className="pt-2">
-                            <Link to="/login" className="text-primary hover:underline font-medium">
-                                {t('auth.proceed_to_login', 'Proceed to Login')}
-                            </Link>
+                {needsVerification ? (
+                    <div className="space-y-6">
+                        <div className="bg-primary/10 text-primary p-4 rounded-lg text-center text-sm">
+                            <Mail className="h-8 w-8 mx-auto mb-2" />
+                            {t('auth.verification_sent', 'Please check your email for the verification code.')}
                         </div>
+
+                        <form onSubmit={handleVerification} className="space-y-4">
+                            {error && (
+                                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                                    {error}
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">{t('auth.verification_code', 'Verification Code')}</label>
+                                <input
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-center tracking-widest text-lg"
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value)}
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <button
+                                    type="button"
+                                    onClick={handleResendCode}
+                                    className="text-sm text-primary hover:underline"
+                                >
+                                    {t('auth.resend_code', 'Resend Code')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isVerifying}
+                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
+                                >
+                                    {isVerifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {t('auth.verify_btn', 'Verify')}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">

@@ -2218,8 +2218,10 @@ def get_system_info(db: Session = Depends(get_db)):
     # Determine environment
     is_docker = os.path.exists("/.dockerenv")
 
+    from version import VERSION
+    
     return {
-        "version": "1.0.0",
+        "version": VERSION,
         "environment": "docker" if is_docker else "local",
         "services": {
             "frontend": "online", # If they can see this, it's online

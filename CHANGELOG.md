@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2-beta.9] - 2025-11-28
+### Added
+- [TODO: Add your changes here]
+
 ## [1.0.2-beta.8] - 2025-11-28
 ### Added
 - [TODO: Add your changes here]

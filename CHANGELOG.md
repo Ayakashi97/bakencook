@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2-beta.19] - 2025-11-28
+### Changes
+- refactor: remove System Status tab and its component logic from Admin panel.
+- fix: auto-scroll update log and improve service restart robustness
+
 ## [1.0.2-beta.18] - 2025-11-28
 ### Changes
 - fix: make service restart in update script non-blocking

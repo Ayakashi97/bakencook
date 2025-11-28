@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.9-beta.1] - 2025-11-28
+### Changes
+- feat: add i18n keys for update restart messages and common saved state
+- fix: Change system settings update channel API method from PUT to POST
+- chore: update dependencies
+
 ## [1.0.8] - 2025-11-28
 ### Changes
 - chore: update dependencies

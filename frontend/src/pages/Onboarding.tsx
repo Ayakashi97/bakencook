@@ -19,7 +19,7 @@ export default function Onboarding() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFaviconModal, setShowFaviconModal] = useState(false);
 
-    const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<SystemInit>({
+    const { register, handleSubmit, setValue, watch, getValues, formState: { errors } } = useForm<SystemInit>({
         defaultValues: {
             app_name: 'Bake’n’Cook',
             import_data: true,
@@ -44,8 +44,39 @@ export default function Onboarding() {
         }
     };
 
-    const nextStep = () => {
-        // Basic validation before proceeding could be added here
+    const nextStep = async () => {
+        // Validation for Admin User Step (Index 1)
+        if (currentStep === 1) {
+            const { admin_username, admin_email, admin_password } = getValues();
+
+            if (!admin_username || !admin_username.trim()) {
+                toast.error('Please enter a username');
+                return;
+            }
+
+            if (!admin_email || !admin_email.trim()) {
+                toast.error('Please enter an email address');
+                return;
+            }
+
+            // Basic Email Regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(admin_email)) {
+                toast.error('Please enter a valid email address');
+                return;
+            }
+
+            if (!admin_password || !admin_password.trim()) {
+                toast.error('Please enter a password');
+                return;
+            }
+
+            if (admin_password.length < 8) {
+                toast.error('Password must be at least 8 characters');
+                return;
+            }
+        }
+
         if (currentStep < steps.length - 1) {
             setCurrentStep(prev => prev + 1);
         } else {

@@ -33,7 +33,7 @@ fi
 # 2. Git Update
 echo "Fetching latest changes..."
 cd "$PROJECT_DIR"
-git fetch --tags
+git fetch --tags --force
 
 if [ -n "$TARGET_VERSION" ]; then
     echo "Checking out version: $TARGET_VERSION"

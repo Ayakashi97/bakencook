@@ -283,6 +283,84 @@ def check_for_updates(
         print(f"Update check failed: {e}")
         return {"update_available": False, "error": str(e)}
 
+# --- Update Execution ---
+
+# Global state for update process
+update_process_state = {
+    "status": "idle", # idle, running, completed, failed
+    "log": [],
+    "pid": None
+}
+
+def run_update_script(target_version: str = None):
+    global update_process_state
+    update_process_state["status"] = "running"
+    update_process_state["log"] = []
+    
+    import subprocess
+    import sys
+    
+    script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'update.sh')
+    
+    cmd = ["bash", script_path]
+    if target_version:
+        cmd.append(target_version)
+        
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(__file__))
+        )
+        update_process_state["pid"] = process.pid
+        
+        for line in process.stdout:
+            update_process_state["log"].append(line.strip())
+            
+        process.wait()
+        
+        if process.returncode == 0:
+            update_process_state["status"] = "completed"
+            update_process_state["log"].append("Update finished successfully.")
+        else:
+            update_process_state["status"] = "failed"
+            update_process_state["log"].append(f"Update failed with exit code {process.returncode}")
+            
+    except Exception as e:
+        update_process_state["status"] = "failed"
+        update_process_state["log"].append(f"Execution error: {str(e)}")
+
+@app.post("/system/update")
+def trigger_update(
+    background_tasks: BackgroundTasks,
+    update_request: schemas.SystemUpdate = None, # We need to define this schema
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    global update_process_state
+    
+    if update_process_state["status"] == "running":
+        raise HTTPException(status_code=400, detail="Update already in progress")
+        
+    target_version = update_request.version if update_request else None
+    
+    background_tasks.add_task(run_update_script, target_version)
+    
+    return {"message": "Update started", "status": "running"}
+
+@app.get("/system/update-status")
+def get_update_status(
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    global update_process_state
+    # Return last 50 log lines to avoid huge payload
+    return {
+        "status": update_process_state["status"],
+        "log": update_process_state["log"][-50:]
+    }
+
 
 # --- Auth ---
 

@@ -464,7 +464,10 @@ function EmailSettings() {
 
 function UpdateSettings() {
     const { t } = useTranslation();
-    const { settings, updateSettingsMutation } = useSettings();
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<string>('idle');
+    const [updateLog, setUpdateLog] = useState<string[]>([]);
+    const queryClient = useQueryClient();
 
     // Fetch Version
     const { data: versionData, isLoading: isLoadingVersion } = useQuery({
@@ -485,95 +488,198 @@ function UpdateSettings() {
     });
 
     // Check Updates
-    const { data: updateData, isFetching: isCheckingUpdate, refetch: checkUpdate } = useQuery({
+    const { data: updateData, isLoading: isLoadingUpdate, refetch: checkUpdates } = useQuery({
         queryKey: ['systemUpdateCheck'],
         queryFn: async () => {
             const res = await api.get('/system/check-update');
             return res.data;
         },
-        enabled: false // Manual trigger
+        enabled: false // Don't check automatically on mount, or maybe do? Let's keep manual for now or auto?
+        // Actually, let's check on mount
     });
 
-    if (isLoadingVersion) return <div>{t('common.loading')}</div>;
+    // Auto check on mount
+    useEffect(() => {
+        checkUpdates();
+    }, []);
+
+    // Update Channel Settings
+    const { data: settings } = useQuery({
+        queryKey: ['systemSettings'],
+        queryFn: async () => {
+            const res = await api.get('/system/settings');
+            return res.data;
+        }
+    });
+
+    const updateChannelMutation = useMutation({
+        mutationFn: async (channel: string) => {
+            await api.put('/system/settings', { update_channel: channel });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['systemSettings'] });
+            toast.success(t('common.saved'));
+            checkUpdates(); // Re-check updates after channel change
+        }
+    });
+
+    // Start Update Mutation
+    const startUpdateMutation = useMutation({
+        mutationFn: async (version: string) => {
+            await api.post('/system/update', { version });
+        },
+        onSuccess: () => {
+            setIsUpdateModalOpen(true);
+            setUpdateStatus('running');
+            setUpdateLog(['Starting update...']);
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.detail || "Failed to start update");
+        }
+    });
+
+    // Poll Update Status
+    useQuery({
+        queryKey: ['updateStatus'],
+        queryFn: async () => {
+            if (!isUpdateModalOpen || updateStatus === 'completed' || updateStatus === 'failed') return null;
+            const res = await api.get('/system/update-status');
+            setUpdateStatus(res.data.status);
+            setUpdateLog(res.data.log);
+            return res.data;
+        },
+        enabled: isUpdateModalOpen && updateStatus === 'running',
+        refetchInterval: 1000,
+    });
+
+    const handleUpdateClick = () => {
+        if (updateData?.remote_version) {
+            if (confirm(t('admin.confirm_update', 'Are you sure you want to update? The system will be restarted.'))) {
+                startUpdateMutation.mutate(updateData.remote_version);
+            }
+        }
+    };
 
     return (
-        <div className="space-y-6 max-w-3xl">
-            {/* Channel Selection */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
-                <div>
-                    <div className="font-medium">{t('admin.update_channel', 'Update Channel')}</div>
-                    <div className="text-sm text-muted-foreground">{t('admin.update_channel_desc', 'Select which updates to receive')}</div>
+        <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <h3 className="font-semibold mb-2">{t('admin.current_version')}</h3>
+                    {isLoadingVersion ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <div className="text-2xl font-bold">{versionData?.version}</div>
+                    )}
                 </div>
-                <select
-                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={settings?.update_channel || 'stable'}
-                    onChange={(e) => updateSettingsMutation.mutate({ ...settings, update_channel: e.target.value })}
-                >
-                    <option value="stable">Stable (Releases)</option>
-                    <option value="beta">Beta (Pre-releases)</option>
-                </select>
+
+                <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <h3 className="font-semibold mb-2">{t('admin.update_channel')}</h3>
+                    <select
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={settings?.update_channel || 'stable'}
+                        onChange={(e) => updateChannelMutation.mutate(e.target.value)}
+                    >
+                        <option value="stable">Stable (Releases)</option>
+                        <option value="beta">Beta (Pre-releases)</option>
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        {t('admin.channel_desc', 'Select "Beta" to receive early access updates.')}
+                    </p>
+                </div>
             </div>
 
-            {/* Version Info */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
-                <div>
-                    <div className="font-medium flex items-center gap-2">
-                        <GitBranch className="h-4 w-4 text-primary" />
-                        {t('admin.current_version', 'Current Version')}
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{versionData?.version || 'Unknown'}</div>
+            <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-semibold">{t('admin.check_updates')}</h3>
+                    <button
+                        onClick={() => checkUpdates()}
+                        disabled={isLoadingUpdate}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                    >
+                        {isLoadingUpdate ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                        {t('admin.check_now')}
+                    </button>
                 </div>
-                <button
-                    onClick={() => checkUpdate()}
-                    disabled={isCheckingUpdate}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium"
-                >
-                    {isCheckingUpdate ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                    {t('admin.check_updates', 'Check for Updates')}
-                </button>
-            </div>
 
-            {/* Update Status */}
-            {updateData && (
-                <div className={cn(
-                    "p-4 rounded-lg border",
-                    updateData.update_available
-                        ? "border-green-500/20 bg-green-500/5"
-                        : "border-white/10 bg-white/5"
-                )}>
-                    <div className="font-medium mb-2">
-                        {updateData.update_available
-                            ? t('admin.update_available', 'Update Available!')
-                            : t('admin.up_to_date', 'System is up to date')}
-                    </div>
-                    {updateData.update_available && (
-                        <div className="text-sm text-muted-foreground space-y-1">
-                            <div>{t('admin.remote_version', 'Latest Version')}: <span className="font-mono">{updateData.remote_version}</span></div>
-                            <div className="mt-4 p-3 bg-black/20 rounded border border-white/5 text-xs font-mono">
-                                {t('admin.update_instructions_tag', 'To update, run:')}
-                                <br />
-                                <span className="text-primary">./scripts/update.sh {updateData.remote_version}</span>
+                {updateData?.update_available ? (
+                    <div className="bg-green-500/10 text-green-600 p-4 rounded-md border border-green-500/20">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-green-500/20 rounded-full">
+                                <Download className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-bold">{t('admin.update_available')}</h4>
+                                <p className="text-sm mt-1">
+                                    {t('admin.new_version_found')}: <span className="font-mono font-bold">{updateData.remote_version}</span>
+                                </p>
+                                <div className="mt-4">
+                                    <button
+                                        onClick={handleUpdateClick}
+                                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
+                                    >
+                                        {t('admin.update_now', 'Update Now')}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    )}
-                    {updateData.error && (
-                        <div className="text-red-400 text-sm mt-2">
-                            Error: {updateData.error}
-                        </div>
-                    )}
-                </div>
-            )}
+                    </div>
+                ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                        <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>{t('admin.system_up_to_date')}</p>
+                    </div>
+                )}
+            </div>
 
-            {/* Changelog */}
-            <div className="space-y-2">
-                <div className="font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {t('admin.changelog', 'Changelog')}
-                </div>
-                <div className="p-4 rounded-lg border border-white/10 bg-black/20 h-96 overflow-y-auto font-mono text-xs whitespace-pre-wrap text-muted-foreground">
-                    {isLoadingChangelog ? t('common.loading') : (changelogData?.changelog || 'No changelog found.')}
+            <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
+                <h3 className="font-semibold mb-4">{t('admin.changelog')}</h3>
+                <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md h-64 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-sans">{changelogData?.changelog || 'Loading...'}</pre>
                 </div>
             </div>
+
+            {/* Update Progress Modal */}
+            {isUpdateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
+                        <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+                            <h2 className="text-lg font-semibold leading-none tracking-tight">
+                                {updateStatus === 'running' ? t('admin.updating', 'Updating System...') :
+                                    updateStatus === 'completed' ? t('admin.update_completed', 'Update Completed') :
+                                        t('admin.update_failed', 'Update Failed')}
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                {t('admin.update_desc', 'Please wait while the system updates. Do not close this window.')}
+                            </p>
+                        </div>
+
+                        <div className="bg-black text-green-400 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto">
+                            {updateLog.map((line, i) => (
+                                <div key={i}>{line}</div>
+                            ))}
+                            {updateStatus === 'running' && (
+                                <div className="animate-pulse">_</div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2">
+                            {updateStatus !== 'running' && (
+                                <button
+                                    onClick={() => {
+                                        setIsUpdateModalOpen(false);
+                                        if (updateStatus === 'completed') {
+                                            window.location.reload();
+                                        }
+                                    }}
+                                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                                >
+                                    {updateStatus === 'completed' ? t('common.reload', 'Reload') : t('common.close', 'Close')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

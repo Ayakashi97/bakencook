@@ -35,7 +35,18 @@ export default function VerifyEmail() {
                 }, 3000);
             } catch (err: any) {
                 setStatus('error');
-                setMessage(err.response?.data?.detail || t('auth.verification_failed', 'Verification failed. The token may be invalid or expired.'));
+                const detail = err.response?.data?.detail;
+                let errorMsg = t('auth.verification_failed', 'Verification failed. The token may be invalid or expired.');
+
+                if (detail === 'Invalid token') {
+                    errorMsg = t('auth.invalid_token_error', 'The verification token is invalid.');
+                } else if (detail === 'Token expired') {
+                    errorMsg = t('auth.token_expired', 'The verification token has expired.');
+                } else if (detail === 'User not found') {
+                    errorMsg = t('auth.user_not_found', 'User associated with this token was not found.');
+                }
+
+                setMessage(errorMsg);
             }
         };
 

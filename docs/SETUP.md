@@ -1,4 +1,4 @@
-# Setup Guide
+# Bake'n'Cook Docker Setup Guide
 
 ## Prerequisites
 - **Docker** and **Docker Compose** installed.

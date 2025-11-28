@@ -92,8 +92,19 @@ echo "Update completed successfully."
 if [ -n "$BACKEND_SERVICE_NAME" ]; then
     echo "Restarting service: $BACKEND_SERVICE_NAME..."
     if command -v systemctl &> /dev/null; then
-        sudo systemctl restart "$BACKEND_SERVICE_NAME"
-        echo "Service restarted."
+        # Try without sudo first (e.g. user service)
+        if systemctl restart "$BACKEND_SERVICE_NAME"; then
+            echo "Service restarted (without sudo)."
+        # Try with non-interactive sudo
+        elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME"; then
+            echo "Service restarted (with sudo)."
+        else
+            echo "Warning: Could not restart service automatically."
+            echo "Reason: 'sudo' requires a password or insufficient permissions."
+            echo "To enable auto-restart, configure NOPASSWD in sudoers for this command:"
+            echo "  $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart $BACKEND_SERVICE_NAME"
+            echo "Please restart '$BACKEND_SERVICE_NAME' manually to apply changes."
+        fi
     else
         echo "Warning: systemctl not found. Cannot restart service automatically."
         echo "Please restart '$BACKEND_SERVICE_NAME' manually."

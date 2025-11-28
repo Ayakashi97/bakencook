@@ -129,6 +129,7 @@ export default function Login() {
                         <label className="text-sm font-medium">{t('auth.username')}</label>
                         <input
                             required
+                            autoComplete="username"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
@@ -140,6 +141,7 @@ export default function Login() {
                         <input
                             required
                             type="password"
+                            autoComplete="current-password"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}

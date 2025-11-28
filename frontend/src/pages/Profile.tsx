@@ -136,9 +136,13 @@ export default function Profile() {
                     <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                         <KeyRound className="h-5 w-5" /> {t('profile.change_password')}
                     </h2>
-                    <div className="space-y-4 max-w-md">
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
+                        className="space-y-4 max-w-md"
+                    >
                         <input
                             type="password"
+                            autoComplete="current-password"
                             placeholder={t('profile.old_password')}
                             className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors"
                             value={passwords.old}
@@ -146,6 +150,7 @@ export default function Profile() {
                         />
                         <input
                             type="password"
+                            autoComplete="new-password"
                             placeholder={t('profile.new_password')}
                             className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors"
                             value={passwords.new}
@@ -157,14 +162,14 @@ export default function Profile() {
                             </div>
                         )}
                         <button
-                            onClick={handlePasswordChange}
+                            type="submit"
                             disabled={changePasswordMutation.isPending || !passwords.old || !passwords.new}
                             className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
                         >
                             {changePasswordMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                             {t('profile.update_password_btn')}
                         </button>
-                    </div>
+                    </form>
                 </div>
 
                 <div className="glass-card rounded-xl p-6">

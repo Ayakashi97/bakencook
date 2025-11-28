@@ -386,6 +386,7 @@ export default function AdminDashboard() {
 
                                     }}
                                     required
+                                    autoComplete="username"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -393,6 +394,7 @@ export default function AdminDashboard() {
                                 <input
                                     type="email"
                                     required
+                                    autoComplete="email"
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={userFormData.email}
                                     onChange={(e) => {
@@ -405,6 +407,7 @@ export default function AdminDashboard() {
                                 <label className="text-sm font-medium">{t('login.password')}</label>
                                 <input
                                     type="password"
+                                    autoComplete="new-password"
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={userFormData.password}
                                     onChange={(e) => {

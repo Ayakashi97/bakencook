@@ -258,6 +258,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+        app_name = app_name.strip()
         
         if user.email:
             send_mail(db, user.email, f"Verify your email - {app_name}", f"Your verification code is: <b>{token}</b>")
@@ -1941,11 +1942,18 @@ def test_email_config(
         from email.mime.multipart import MIMEMultipart
         
         msg = MIMEMultipart()
-        msg['From'] = request.sender_email
-        msg['To'] = request.test_recipient
+        
+        # Sanitize inputs
+        sender_email = request.sender_email.strip()
+        test_recipient = request.test_recipient.strip()
+        
+        msg['From'] = sender_email
+        msg['To'] = test_recipient
+        
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+        app_name = app_name.strip()
 
         msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
         
@@ -1955,8 +1963,11 @@ def test_email_config(
         server = smtplib.SMTP(request.smtp_server, request.smtp_port)
         server.starttls()
         server.login(request.smtp_user, request.smtp_password)
+        
+        # Ensure the message is converted to a string properly
         text = msg.as_string()
-        server.sendmail(request.sender_email, request.test_recipient, text)
+        
+        server.sendmail(sender_email, test_recipient, text)
         server.quit()
         
         return {"message": "Test email sent successfully"}

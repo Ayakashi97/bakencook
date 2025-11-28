@@ -32,6 +32,10 @@ def send_mail(db: Session, to_email: str, subject: str, body: str):
         return False
         
     try:
+        # Sanitize inputs
+        to_email = to_email.strip()
+        from_email = from_email.strip()
+        
         msg = MIMEMultipart()
         msg['From'] = from_email
         msg['To'] = to_email

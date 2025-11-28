@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2-beta.3] - 2025-11-28
+### Added
+- [TODO: Add your changes here]
+
 ## [1.0.2-beta.1] - 2025-11-28
 ### Added
 - Beta release channel support.

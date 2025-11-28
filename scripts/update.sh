@@ -93,10 +93,10 @@ if [ -n "$BACKEND_SERVICE_NAME" ]; then
     echo "Restarting service: $BACKEND_SERVICE_NAME..."
     if command -v systemctl &> /dev/null; then
         # Try without sudo first (e.g. user service)
-        if systemctl restart "$BACKEND_SERVICE_NAME"; then
+        if systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
             echo "Service restarted (without sudo)."
         # Try with non-interactive sudo
-        elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME"; then
+        elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
             echo "Service restarted (with sudo)."
         else
             echo "Warning: Could not restart service automatically."
@@ -104,6 +104,7 @@ if [ -n "$BACKEND_SERVICE_NAME" ]; then
             echo "To enable auto-restart, configure NOPASSWD in sudoers for this command:"
             echo "  $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart $BACKEND_SERVICE_NAME"
             echo "Please restart '$BACKEND_SERVICE_NAME' manually to apply changes."
+            # Do NOT exit with error here, just warn
         fi
     else
         echo "Warning: systemctl not found. Cannot restart service automatically."

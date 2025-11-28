@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { RefreshCw, Activity, Database, Server, Globe, Bot, Download, CheckCircle2, Loader2, ArrowUpCircle } from 'lucide-react';
@@ -27,6 +27,14 @@ export default function SystemStatus() {
     const [updateLog, setUpdateLog] = useState<string[]>([]);
 
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    const logContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+    }, [updateLog]);
 
     // --- System Info ---
     const { data: systemInfo, isLoading: isLoadingInfo } = useQuery<SystemInfo>({
@@ -311,7 +319,10 @@ export default function SystemStatus() {
                             </p>
                         </div>
 
-                        <div className="bg-black text-green-400 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto">
+                        <div
+                            ref={logContainerRef}
+                            className="bg-black text-green-400 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto"
+                        >
                             {updateLog.map((line, i) => (
                                 <div key={i}>{line}</div>
                             ))}

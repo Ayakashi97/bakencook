@@ -1934,10 +1934,9 @@ def test_email_config(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
-    try:
-        import smtplib
         from email.mime.text import MIMEText
         from email.header import Header
+        from email.mime.multipart import MIMEMultipart
         
         msg = MIMEMultipart()
         msg['From'] = request.sender_email

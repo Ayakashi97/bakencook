@@ -4,6 +4,8 @@ from email.mime.multipart import MIMEMultipart
 from sqlalchemy.orm import Session
 import models
 
+from email.header import Header
+
 def send_mail(db: Session, to_email: str, subject: str, body: str):
     """
     Sends an email using SMTP settings from the database.
@@ -33,9 +35,9 @@ def send_mail(db: Session, to_email: str, subject: str, body: str):
         msg = MIMEMultipart()
         msg['From'] = from_email
         msg['To'] = to_email
-        msg['Subject'] = subject
+        msg['Subject'] = Header(subject, 'utf-8')
         
-        msg.attach(MIMEText(body, 'html'))
+        msg.attach(MIMEText(body, 'html', 'utf-8'))
         
         server = smtplib.SMTP(host, port)
         if use_tls:

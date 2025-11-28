@@ -1,4 +1,4 @@
-APP_import os
+import os
 
 def get_version():
     try:
@@ -10,3 +10,4 @@ def get_version():
         return "0.0.0"
 
 VERSION = get_version()
+APP_VERSION = VERSION

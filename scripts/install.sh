@@ -86,8 +86,6 @@ if grep -q "\${" .env; then
 fi
 
 if ! grep -q "VITE_API_URL" .env; then
-
-if ! grep -q "VITE_API_URL" .env; then
     log "Adding VITE_API_URL to .env..."
     echo "VITE_API_URL=/api" >> .env
 fi

@@ -18,6 +18,7 @@ i18n
                 translation: {
                     "approve": "Approve",
                     "pending_approval": "Pending Approval",
+                    "verified": "Verified",
                     "nav.dashboard": "Dashboard",
                     "nav.planer": "Planer",
                     "nav.logout": "Logout",
@@ -459,6 +460,7 @@ i18n
                 translation: {
                     "approve": "Genehmigen",
                     "pending_approval": "Genehmigung ausstehend",
+                    "verified": "Verifiziert",
                     "nav.dashboard": "Übersicht",
                     "nav.planer": "Planer",
                     "nav.logout": "Abmelden",

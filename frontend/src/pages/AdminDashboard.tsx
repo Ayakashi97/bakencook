@@ -239,12 +239,12 @@ export default function AdminDashboard() {
         return (
             <div className="space-y-6">
                 <div className="glass-card rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
+                    <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
                         <h2 className="font-semibold flex items-center gap-2 shrink-0">
                             <Users className="h-5 w-5" /> {t('admin.user_mgmt')}
                         </h2>
-                        <div className="flex items-center gap-2 flex-1 justify-end">
-                            <div className="relative max-w-xs w-full">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-end">
+                            <div className="relative w-full sm:max-w-xs">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <input
                                     type="text"
@@ -259,13 +259,15 @@ export default function AdminDashboard() {
                             </div>
                             <button
                                 onClick={handleCreateUser}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2 text-xs font-medium shrink-0"
+                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-xs font-medium shrink-0 w-full sm:w-auto"
                             >
                                 <Plus className="h-3.5 w-3.5" /> {t('admin.add_user') || "Add User"}
                             </button>
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
+
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                                 <tr>
@@ -359,6 +361,63 @@ export default function AdminDashboard() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Card View */}
+                    <div className="grid grid-cols-1 md:hidden divide-y divide-white/10">
+                        {paginatedUsers.map((u) => (
+                            <div key={u.id} className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {u.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="font-medium">{u.username}</span>
+                                    </div>
+                                    <span className={cn(
+                                        "px-2 py-1 rounded-full text-xs font-medium border",
+                                        !u.is_verified
+                                            ? "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800"
+                                            : u.is_active
+                                                ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
+                                                : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                                    )}>
+                                        {!u.is_verified ? t('admin.pending_verification') : u.is_active ? t('admin.active') : t('admin.inactive')}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between pt-2">
+                                    <select
+                                        className="h-8 rounded-md border border-input bg-background/50 px-2 text-xs w-32"
+                                        value={u.role_rel?.name || (u.role === 'user' ? 'User' : u.role === 'admin' ? 'Admin' : u.role)}
+                                        onChange={(e) => {
+                                            setSelectedUserForRole(u);
+                                            setPendingRole(e.target.value);
+                                            setShowRoleChangeModal(true);
+                                        }}
+                                    >
+                                        {roles?.map(r => (
+                                            <option key={r.id} value={r.name}>{r.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleEditUser(u)} className="p-2 text-blue-500 bg-blue-50/10 rounded-md">
+                                            <Edit2 className="h-4 w-4" />
+                                        </button>
+                                        {u.id !== user?.id && (
+                                            <>
+                                                <button onClick={() => { setSelectedUser(u); u.is_active ? setShowDeactivateModal(true) : setShowActivateModal(true); }} className={cn("p-2 rounded-md", u.is_active ? "text-orange-600 bg-orange-50/10" : "text-green-600 bg-green-50/10")}>
+                                                    <Activity className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => { setSelectedUser(u); setShowDeleteModal(true); }} className="p-2 text-destructive bg-destructive/10 rounded-md">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}

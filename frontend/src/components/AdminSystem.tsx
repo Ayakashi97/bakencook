@@ -367,7 +367,7 @@ function EmailSettings() {
 
             {formData.enable_email_verification === 'true' && (
                 <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">{t('admin.smtp_host', 'SMTP Host')}</label>
                             <input
@@ -436,11 +436,11 @@ function EmailSettings() {
                 </>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
                 <button
                     onClick={() => updateSettingsMutation.mutate(formData)}
                     disabled={updateSettingsMutation.isPending}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium"
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium w-full sm:w-auto"
                 >
                     {updateSettingsMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {t('common.save')}
@@ -449,7 +449,7 @@ function EmailSettings() {
                     <button
                         onClick={() => testEmailMutation.mutate(formData)}
                         disabled={testEmailMutation.isPending || !formData.smtp_host || !formData.smtp_user}
-                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground px-4 py-2 rounded-md flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-50"
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground px-4 py-2 rounded-md flex items-center justify-center gap-2 text-sm font-medium transition-colors disabled:opacity-50 w-full sm:w-auto"
                     >
                         {testEmailMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                         {t('admin.test_config', 'Test Configuration')}

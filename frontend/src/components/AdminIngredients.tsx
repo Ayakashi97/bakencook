@@ -240,12 +240,12 @@ export default function AdminIngredients() {
     return (
         <div className="space-y-6">
             <div className="glass-card rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
+                <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
                     <h2 className="font-semibold flex items-center gap-2 shrink-0">
                         <Search className="h-5 w-5" /> {t('admin.ingredients_title')}
                     </h2>
-                    <div className="flex items-center gap-2 flex-1 justify-end">
-                        <div className="relative max-w-xs w-full">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-end">
+                        <div className="relative w-full sm:max-w-xs">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <input
                                 type="text"
@@ -258,8 +258,8 @@ export default function AdminIngredients() {
                                 }}
                             />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <label className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center gap-2 text-xs font-medium cursor-pointer transition-colors bg-background/30">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <label className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors bg-background/30 flex-1 sm:flex-none">
                                 <Upload className="h-3.5 w-3.5" />
                                 {t('admin.import')}
                                 <input
@@ -271,14 +271,14 @@ export default function AdminIngredients() {
                             </label>
                             <button
                                 onClick={handleExport}
-                                className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center gap-2 text-xs font-medium transition-colors bg-background/30"
+                                className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 text-xs font-medium transition-colors bg-background/30 flex-1 sm:flex-none"
                             >
                                 <Download className="h-3.5 w-3.5" />
                                 {t('admin.export')}
                             </button>
                             <button
                                 onClick={handleCreate}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2 text-xs font-medium transition-colors shadow-sm"
+                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-xs font-medium transition-colors shadow-sm flex-1 sm:flex-none"
                             >
                                 <Plus className="h-3.5 w-3.5" /> {t('admin.add_ingredient')}
                             </button>
@@ -327,7 +327,7 @@ export default function AdminIngredients() {
                     </Modal>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                             <tr>
@@ -404,6 +404,51 @@ export default function AdminIngredients() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="grid grid-cols-1 md:hidden divide-y divide-white/10">
+                    {isLoading ? (
+                        <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>
+                    ) : ingredients.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">{t('admin.no_ingredients')}</div>
+                    ) : (
+                        paginatedIngredients.map((ingredient) => ingredient ? (
+                            <div key={ingredient.id} className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium">{getLocalizedName(ingredient.name)}</span>
+                                    {ingredient.is_verified ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                                            <CheckCircle className="h-3 w-3" />
+                                            {t('verified')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                                            {t('pending_approval')}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex justify-between">
+                                    <span>{t('admin.default_unit')}: {getUnitName(ingredient.default_unit_id)}</span>
+                                    <span>{recipes.find(r => r && r.id === ingredient.linked_recipe_id)?.title || '-'}</span>
+                                </div>
+                                <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                                    {!ingredient.is_verified && (
+                                        <button onClick={() => handleApprove(ingredient.id)} className="p-2 text-green-600 bg-green-50/10 rounded-md">
+                                            <CheckCircle className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                    <button onClick={() => handleEdit(ingredient)} className="p-2 text-blue-500 bg-blue-50/10 rounded-md">
+                                        <Edit2 className="h-4 w-4" />
+                                    </button>
+                                    <button onClick={() => handleDeleteClick(ingredient.id)} className="p-2 text-destructive bg-destructive/10 rounded-md">
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null)
+                    )}
+                </div>
+
                 <Pagination
                     currentPage={currentPage}
                     totalPages={totalPages}

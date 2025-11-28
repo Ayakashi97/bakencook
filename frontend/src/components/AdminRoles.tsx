@@ -166,12 +166,12 @@ export default function AdminRoles() {
     return (
         <div className="space-y-6">
             <div className="glass-card rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
+                <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
                     <h2 className="font-semibold flex items-center gap-2 shrink-0">
                         <Lock className="h-5 w-5" /> {t('admin.role_mgmt')}
                     </h2>
-                    <div className="flex items-center gap-2 flex-1 justify-end">
-                        <div className="relative max-w-xs w-full">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-end">
+                        <div className="relative w-full sm:max-w-xs">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <input
                                 type="text"
@@ -186,7 +186,7 @@ export default function AdminRoles() {
                         </div>
                         <button
                             onClick={handleCreate}
-                            className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium shrink-0 shadow-sm"
+                            className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium shadow-sm w-full sm:w-auto"
                         >
                             <Plus className="h-3.5 w-3.5" /> {t('admin.add_role')}
                         </button>
@@ -306,7 +306,7 @@ export default function AdminRoles() {
                     </Modal>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                             <tr>
@@ -374,6 +374,51 @@ export default function AdminRoles() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="grid grid-cols-1 md:hidden divide-y divide-white/10">
+                    {isLoading ? (
+                        <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>
+                    ) : roles.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">{t('admin.no_roles')}</div>
+                    ) : (
+                        paginatedRoles.map((role) => (
+                            <div key={role.id} className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 font-medium">
+                                        <Shield className="h-4 w-4 text-muted-foreground" />
+                                        {role.name}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleEdit(role)} className="p-2 text-blue-500 bg-blue-50/10 rounded-md">
+                                            <Edit2 className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(role)}
+                                            disabled={role.user_count > 0}
+                                            className={`p-2 rounded-md ${role.user_count > 0 ? 'text-muted-foreground bg-muted/10' : 'text-destructive bg-destructive/10'}`}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                    {role.permissions.map(p => (
+                                        <span key={p} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-secondary text-secondary-foreground">
+                                            {p}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="text-sm text-muted-foreground flex items-center justify-between">
+                                    <span className="opacity-70">{t('admin.user_count') || "Users"}:</span>
+                                    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${role.user_count > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'}`}>
+                                        {role.user_count}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
                 <Pagination
                     currentPage={currentPage}

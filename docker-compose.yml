@@ -1,0 +1,62 @@
+services:
+  # 1. Die Datenbank
+  db:
+    image: postgres:15-alpine
+    container_name: bakencook_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend (FastAPI + AI Logic)
+  backend:
+    build: ./backend
+    container_name: bakencook_backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PLAYWRIGHT_WS_ENDPOINT: ${PLAYWRIGHT_WS_ENDPOINT}
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      playwright:
+        condition: service_started
+
+  # 3. Frontend (React)
+  frontend:
+    build: ./frontend
+    container_name: bakencook_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src # Hot Reloading im Dev Mode
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+  # 4. Scraper Service (Headless Browser)
+  playwright:
+    image: ghcr.io/browserless/chromium:latest
+    container_name: bakencook_scraper
+    ports:
+      - "3001:3000"
+    #environment:
+    #  - TOKEN=
+
+volumes:
+  pg_data:

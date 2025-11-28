@@ -1,0 +1,222 @@
+{
+    "units": [
+        {
+            "name": {
+                "en": {
+                    "singular": "g",
+                    "plural": "g"
+                },
+                "de": {
+                    "singular": "g",
+                    "plural": "g"
+                }
+            },
+            "description": {
+                "en": "Gram",
+                "de": "Gramm"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "kg",
+                    "plural": "kg"
+                },
+                "de": {
+                    "singular": "kg",
+                    "plural": "kg"
+                }
+            },
+            "description": {
+                "en": "Kilogram",
+                "de": "Kilogramm"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "ml",
+                    "plural": "ml"
+                },
+                "de": {
+                    "singular": "ml",
+                    "plural": "ml"
+                }
+            },
+            "description": {
+                "en": "Milliliter",
+                "de": "Milliliter"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "l",
+                    "plural": "l"
+                },
+                "de": {
+                    "singular": "l",
+                    "plural": "l"
+                }
+            },
+            "description": {
+                "en": "Liter",
+                "de": "Liter"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "tsp",
+                    "plural": "tsp"
+                },
+                "de": {
+                    "singular": "TL",
+                    "plural": "TL"
+                }
+            },
+            "description": {
+                "en": "Teaspoon",
+                "de": "Teelöffel"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "tbsp",
+                    "plural": "tbsp"
+                },
+                "de": {
+                    "singular": "EL",
+                    "plural": "EL"
+                }
+            },
+            "description": {
+                "en": "Tablespoon",
+                "de": "Esslöffel"
+            }
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "pcs",
+                    "plural": "pcs"
+                },
+                "de": {
+                    "singular": "Stk",
+                    "plural": "Stk"
+                }
+            },
+            "description": {
+                "en": "Pieces",
+                "de": "Stück"
+            }
+        }
+    ],
+    "ingredients": [
+        {
+            "name": {
+                "en": {
+                    "singular": "Flour",
+                    "plural": "Flour"
+                },
+                "de": {
+                    "singular": "Mehl",
+                    "plural": "Mehl"
+                }
+            },
+            "default_unit": "g"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Water",
+                    "plural": "Water"
+                },
+                "de": {
+                    "singular": "Wasser",
+                    "plural": "Wasser"
+                }
+            },
+            "default_unit": "ml"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Salt",
+                    "plural": "Salt"
+                },
+                "de": {
+                    "singular": "Salz",
+                    "plural": "Salz"
+                }
+            },
+            "default_unit": "g"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Yeast",
+                    "plural": "Yeast"
+                },
+                "de": {
+                    "singular": "Hefe",
+                    "plural": "Hefe"
+                }
+            },
+            "default_unit": "g"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Sugar",
+                    "plural": "Sugar"
+                },
+                "de": {
+                    "singular": "Zucker",
+                    "plural": "Zucker"
+                }
+            },
+            "default_unit": "g"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Butter",
+                    "plural": "Butter"
+                },
+                "de": {
+                    "singular": "Butter",
+                    "plural": "Butter"
+                }
+            },
+            "default_unit": "g"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Milk",
+                    "plural": "Milk"
+                },
+                "de": {
+                    "singular": "Milch",
+                    "plural": "Milch"
+                }
+            },
+            "default_unit": "ml"
+        },
+        {
+            "name": {
+                "en": {
+                    "singular": "Egg",
+                    "plural": "Eggs"
+                },
+                "de": {
+                    "singular": "Ei",
+                    "plural": "Eier"
+                }
+            },
+            "default_unit": "pcs"
+        }
+    ]
+}

@@ -9,23 +9,22 @@ A smart meal planning and recipe management application specialized for baking a
 - 🛒 **Shopping List**: Generate shopping lists from your meal plan.
 - 🌍 **Multi-language**: Support for English and German.
 
+## Installation
+
+Bake'n'Cook can be installed using Docker (recommended for ease of use) or directly on a Debian/Ubuntu server.
+
+-   🐳 **[Docker Setup Guide](docs/SETUP.md)**: Quickest way to get started.
+-   🐧 **[Debian/Ubuntu Setup Guide](docs/DEBIAN_SETUP.md)**: For native server installations.
+
 ## Updates
-To update the application, run:
+To update the application, run the update script:
 ```bash
 ./scripts/update.sh
 ```
-For detailed instructions, see [docs/UPDATES.md](docs/UPDATES.md).
+For detailed instructions, backups, and troubleshooting, see **[docs/UPDATES.md](docs/UPDATES.md)**.
 
 ## Documentation
-- [**Setup Guide**](docs/SETUP.md): How to install and run the application.
 - [**User Guide**](docs/USAGE.md): How to use the features.
 - [**Admin Guide**](docs/ADMIN.md): Administration and system settings.
 - [**Project Structure**](docs/STRUCTURE.md): Technical overview of the codebase.
 
-## Quick Start
-1.  Clone the repo.
-2.  Set up `.env`.
-3.  Run `docker-compose up -d`.
-4.  Open `http://localhost:5173`.
-
-See [docs/SETUP.md](docs/SETUP.md) for details.

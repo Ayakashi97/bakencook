@@ -116,13 +116,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const token = localStorage.getItem('token');
         if (token) {
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            api.get('/users/me', { timeout: 5000 })
-                .then(res => setUser(res.data))
-                .catch(() => {
-                    localStorage.removeItem('token');
-                    delete api.defaults.headers.common['Authorization'];
-                })
-                .finally(() => setIsLoading(false));
+
+            const fetchUser = async (retries = 3, delay = 1000) => {
+                try {
+                    const res = await api.get('/users/me', { timeout: 5000 });
+                    setUser(res.data);
+                    setIsLoading(false);
+                } catch (error: any) {
+                    if (error.response && error.response.status === 401) {
+                        // Invalid token, logout immediately
+                        localStorage.removeItem('token');
+                        delete api.defaults.headers.common['Authorization'];
+                        setIsLoading(false);
+                    } else if (retries > 0) {
+                        // Transient error, retry
+                        console.log(`Failed to fetch user, retrying in ${delay}ms...`, error);
+                        setTimeout(() => fetchUser(retries - 1, delay * 2), delay);
+                    } else {
+                        // Failed after retries, but don't logout if it's just network error
+                        // We might want to show an error state instead of redirecting to login
+                        // For now, we keep isLoading true? No, that blocks the UI forever.
+                        // If we set isLoading false and user null, it redirects to login.
+                        // Ideally we should show a "Reconnecting..." screen.
+                        // But for the update case, retrying 3 times (1s, 2s, 4s) + initial should cover ~7s.
+                        // Plus the 5s countdown. Total 12s. Backend should be up.
+                        console.error("Failed to fetch user after retries", error);
+
+                        // If it's a 500 error, maybe we should logout? No.
+                        // Only logout on 401.
+                        // If we fail here, we are in a weird state: Token exists, but we can't get user.
+                        // If we stop loading, App redirects to login.
+                        // So we MUST eventually logout or show error.
+                        // Let's try one final desperate measure: keep retrying slowly?
+                        // Or just let it fail and redirect to login, assuming 12s is enough.
+                        // But to be safe, let's increase retries.
+
+                        // Let's just logout if we really can't connect after multiple attempts,
+                        // otherwise the user is stuck.
+                        localStorage.removeItem('token');
+                        delete api.defaults.headers.common['Authorization'];
+                        setIsLoading(false);
+                    }
+                }
+            };
+
+            fetchUser(5, 1000); // Retry 5 times: 1s, 2s, 4s, 8s, 16s. Total > 30s coverage.
         } else {
             setIsLoading(false);
         }

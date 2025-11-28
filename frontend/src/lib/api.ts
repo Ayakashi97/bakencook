@@ -7,13 +7,6 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 const getBaseUrl = () => {
     const url = API_URL.trim();
     console.log('DEBUG: API_URL raw:', url);
-    console.log('DEBUG: Window protocol:', typeof window !== 'undefined' ? window.location.protocol : 'server');
-
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.match(/^http:\/\//i)) {
-        const newUrl = url.replace(/^http:\/\//i, 'https://');
-        console.log('DEBUG: Upgraded URL:', newUrl);
-        return newUrl;
-    }
     return url;
 };
 

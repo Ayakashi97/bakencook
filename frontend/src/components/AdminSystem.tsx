@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, ArrowUpCircle, FileText, GitBranch } from 'lucide-react';
+import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
 import { Modal } from '../components/Modal';
 
 
-
 export default function AdminSystem() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email' | 'updates'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email'>('general');
 
     return (
         <div className="space-y-6">
@@ -30,7 +29,6 @@ export default function AdminSystem() {
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
                             { id: 'ai', label: t('admin.settings_ai', 'AI Features'), icon: Cpu },
                             { id: 'email', label: t('admin.settings_email', 'Email & SMTP'), icon: Mail },
-                            { id: 'updates', label: t('admin.settings_updates', 'Updates & Version'), icon: ArrowUpCircle },
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -54,7 +52,6 @@ export default function AdminSystem() {
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'email' && <EmailSettings />}
-                    {activeTab === 'updates' && <UpdateSettings />}
                 </div>
             </div>
 
@@ -457,122 +454,6 @@ function EmailSettings() {
                         {t('admin.test_config', 'Test Configuration')}
                     </button>
                 )}
-            </div>
-        </div>
-    );
-}
-
-function UpdateSettings() {
-    const { t } = useTranslation();
-    const { settings, updateSettingsMutation } = useSettings();
-
-    // Fetch Version
-    const { data: versionData, isLoading: isLoadingVersion } = useQuery({
-        queryKey: ['systemVersion'],
-        queryFn: async () => {
-            const res = await api.get('/system/version');
-            return res.data;
-        }
-    });
-
-    // Fetch Changelog
-    const { data: changelogData, isLoading: isLoadingChangelog } = useQuery({
-        queryKey: ['systemChangelog'],
-        queryFn: async () => {
-            const res = await api.get('/system/changelog');
-            return res.data;
-        }
-    });
-
-    // Check Updates
-    const { data: updateData, isFetching: isCheckingUpdate, refetch: checkUpdate } = useQuery({
-        queryKey: ['systemUpdateCheck'],
-        queryFn: async () => {
-            const res = await api.get('/system/check-update');
-            return res.data;
-        },
-        enabled: false // Manual trigger
-    });
-
-    if (isLoadingVersion) return <div>{t('common.loading')}</div>;
-
-    return (
-        <div className="space-y-6 max-w-3xl">
-            {/* Channel Selection */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
-                <div>
-                    <div className="font-medium">{t('admin.update_channel', 'Update Channel')}</div>
-                    <div className="text-sm text-muted-foreground">{t('admin.update_channel_desc', 'Select which updates to receive')}</div>
-                </div>
-                <select
-                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={settings?.update_channel || 'stable'}
-                    onChange={(e) => updateSettingsMutation.mutate({ ...settings, update_channel: e.target.value })}
-                >
-                    <option value="stable">Stable (Releases)</option>
-                    <option value="beta">Beta (Pre-releases)</option>
-                </select>
-            </div>
-
-            {/* Version Info */}
-            <div className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
-                <div>
-                    <div className="font-medium flex items-center gap-2">
-                        <GitBranch className="h-4 w-4 text-primary" />
-                        {t('admin.current_version', 'Current Version')}
-                    </div>
-                    <div className="text-2xl font-bold mt-1">{versionData?.version || 'Unknown'}</div>
-                </div>
-                <button
-                    onClick={() => checkUpdate()}
-                    disabled={isCheckingUpdate}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium"
-                >
-                    {isCheckingUpdate ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                    {t('admin.check_updates', 'Check for Updates')}
-                </button>
-            </div>
-
-            {/* Update Status */}
-            {updateData && (
-                <div className={cn(
-                    "p-4 rounded-lg border",
-                    updateData.update_available
-                        ? "border-green-500/20 bg-green-500/5"
-                        : "border-white/10 bg-white/5"
-                )}>
-                    <div className="font-medium mb-2">
-                        {updateData.update_available
-                            ? t('admin.update_available', 'Update Available!')
-                            : t('admin.up_to_date', 'System is up to date')}
-                    </div>
-                    {updateData.update_available && (
-                        <div className="text-sm text-muted-foreground space-y-1">
-                            <div>{t('admin.remote_version', 'Latest Version')}: <span className="font-mono">{updateData.remote_version}</span></div>
-                            <div className="mt-4 p-3 bg-black/20 rounded border border-white/5 text-xs font-mono">
-                                {t('admin.update_instructions_tag', 'To update, run:')}
-                                <br />
-                                <span className="text-primary">./scripts/update.sh {updateData.remote_version}</span>
-                            </div>
-                        </div>
-                    )}
-                    {updateData.error && (
-                        <div className="text-red-400 text-sm mt-2">
-                            Error: {updateData.error}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Changelog */}
-            <div className="space-y-2">
-                <div className="font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {t('admin.changelog', 'Changelog')}
-                </div>
-                <div className="p-4 rounded-lg border border-white/10 bg-black/20 h-96 overflow-y-auto font-mono text-xs whitespace-pre-wrap text-muted-foreground">
-                    {isLoadingChangelog ? t('common.loading') : (changelogData?.changelog || 'No changelog found.')}
-                </div>
             </div>
         </div>
     );

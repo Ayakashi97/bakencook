@@ -75,7 +75,7 @@ export default function Planer() {
     const { data: recipes } = useQuery<Recipe[]>({
         queryKey: ['recipes'],
         queryFn: async () => {
-            const res = await api.get('/recipes/');
+            const res = await api.get('/recipes');
             return res.data.items || res.data;
         },
     });

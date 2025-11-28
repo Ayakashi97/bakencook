@@ -63,6 +63,13 @@ We use **Alembic** for database migrations.
 
 ## Backups
 Database backups are stored in the `backups/` directory.
+**Important:** Ensure this directory exists and is writable by the user running the application.
+```bash
+mkdir -p backups
+sudo chown $USER:$USER backups
+chmod 755 backups
+```
+
 You can manually trigger a backup using:
 ```bash
 ./scripts/backup_db.sh

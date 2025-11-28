@@ -66,6 +66,23 @@ This guide explains how to deploy Bake'n'Cook directly on a Debian or Ubuntu ser
     *   SMTP Settings (Email)
 
 
+8.  **Configure Automatic Updates (Optional but Recommended)**
+    To allow the application to update itself and restart the backend service automatically from the web interface, you need to configure `sudo` to allow the current user to restart the service without a password.
+
+    Run this command to configure the permission (it creates a dedicated config file):
+    ```bash
+    echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart bakencook-backend" | sudo tee /etc/sudoers.d/bakencook-backend
+    sudo chmod 0440 /etc/sudoers.d/bakencook-backend
+    ```
+
+    **Verify Permissions:**
+    Ensure your user has ownership of the installation directory and the backups folder:
+    ```bash
+    sudo chown -R $USER:$USER /opt/bakencook
+    mkdir -p /opt/bakencook/backups
+    chmod 755 /opt/bakencook/backups
+    ```
+
 ## Updates
 
 To update the application to the latest version:

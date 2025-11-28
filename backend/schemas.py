@@ -338,4 +338,7 @@ class SystemInit(BaseModel):
 
 class SystemVersion(BaseModel):
     version: str
+
+class SystemUpdate(BaseModel):
+    version: Optional[str] = None
     changelog: Optional[str] = None

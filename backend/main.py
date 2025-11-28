@@ -283,6 +283,117 @@ def check_for_updates(
         print(f"Update check failed: {e}")
         return {"update_available": False, "error": str(e)}
 
+# --- Update Execution ---
+
+# Global state for update process
+update_process_state = {
+    "status": "idle", # idle, running, completed, failed
+    "log": [],
+    "pid": None
+}
+
+def run_update_script(target_version: str = None):
+    global update_process_state
+    update_process_state["status"] = "running"
+    update_process_state["log"] = []
+    
+    import subprocess
+    import sys
+    
+    script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'update.sh')
+    
+    cmd = ["bash", script_path]
+    if target_version:
+        cmd.append(target_version)
+        
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(__file__))
+        )
+        update_process_state["pid"] = process.pid
+        
+        for line in process.stdout:
+            update_process_state["log"].append(line.strip())
+            
+        process.wait()
+        
+        if process.returncode == 0:
+            update_process_state["status"] = "completed"
+            update_process_state["log"].append("Update finished successfully.")
+        else:
+            update_process_state["status"] = "failed"
+            update_process_state["log"].append(f"Update failed with exit code {process.returncode}")
+            
+    except Exception as e:
+        update_process_state["status"] = "failed"
+        update_process_state["log"].append(f"Execution error: {str(e)}")
+
+@app.post("/system/update")
+def trigger_update(
+    background_tasks: BackgroundTasks,
+    update_request: schemas.SystemUpdate = None, # We need to define this schema
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    global update_process_state
+    
+    if update_process_state["status"] == "running":
+        raise HTTPException(status_code=400, detail="Update already in progress")
+        
+    target_version = update_request.version if update_request else None
+    
+    background_tasks.add_task(run_update_script, target_version)
+    
+    return {"message": "Update started", "status": "running"}
+
+@app.get("/system/update-status")
+def get_update_status(
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    global update_process_state
+    # Return last 50 log lines to avoid huge payload
+    return {
+        "status": update_process_state["status"],
+        "log": update_process_state["log"][-50:]
+    }
+
+@app.get("/system/settings")
+def get_system_settings(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    # Fetch update channel
+    channel_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
+    channel = channel_setting.value if channel_setting else "stable"
+    
+    return {
+        "update_channel": channel
+    }
+
+@app.post("/system/settings")
+def update_system_settings(
+    settings: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    if "update_channel" in settings:
+        channel = settings["update_channel"]
+        if channel not in ["stable", "beta"]:
+            raise HTTPException(status_code=400, detail="Invalid channel")
+            
+        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
+        if setting:
+            setting.value = channel
+        else:
+            db.add(models.SystemSetting(key="update_channel", value=channel))
+            
+    db.commit()
+    return {"message": "Settings updated"}
+
 
 # --- Auth ---
 
@@ -424,7 +535,12 @@ def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     db: Session = Depends(get_db)
 ):
-    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    user = db.query(models.User).filter(
+        or_(
+            models.User.username == form_data.username,
+            models.User.email == form_data.username
+        )
+    ).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -2102,8 +2218,10 @@ def get_system_info(db: Session = Depends(get_db)):
     # Determine environment
     is_docker = os.path.exists("/.dockerenv")
 
+    from version import VERSION
+    
     return {
-        "version": "1.0.0",
+        "version": VERSION,
         "environment": "docker" if is_docker else "local",
         "services": {
             "frontend": "online", # If they can see this, it's online

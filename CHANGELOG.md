@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2-beta.14] - 2025-11-28
+### Changes
+- feat: automate changelog generation from git history
+- docs: update VITE_API_URL defaults and setup guide
+- fix: remove aggressive https auto-upgrade for api url
+- feat: add venv support and service restart to update script
+- fix: resolve typescript errors in AdminSystem
+
 ## [1.0.2-beta.13] - 2025-11-28
 ### Added
 - [TODO: Add your changes here]

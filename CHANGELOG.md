@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2-beta.21] - 2025-11-28
+### Changes
+- chore: externalize API version by importing it from a dedicated module
+- docs: Refine setup documentation by distinguishing Docker from native installs and adding update/backup permission details.
+- feat: Enhance system status UI with update channel selection, update process monitoring, and service health display.
+- refactor: remove System Status tab and its component logic from Admin panel.
+- fix: auto-scroll update log and improve service restart robustness
+
 ## [1.0.2-beta.19] - 2025-11-28
 ### Changes
 - feat: Enhance system status UI with update channel selection, update process monitoring, and service health display.

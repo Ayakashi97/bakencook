@@ -26,6 +26,8 @@ export default function SystemStatus() {
     const [updateStatus, setUpdateStatus] = useState<string>('idle');
     const [updateLog, setUpdateLog] = useState<string[]>([]);
 
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
     // --- System Info ---
     const { data: systemInfo, isLoading: isLoadingInfo } = useQuery<SystemInfo>({
         queryKey: ['systemInfo'],
@@ -86,11 +88,13 @@ export default function SystemStatus() {
             await api.post('/system/update', { version });
         },
         onSuccess: () => {
+            setShowConfirmModal(false);
             setIsUpdateModalOpen(true);
             setUpdateStatus('running');
             setUpdateLog(['Starting update...']);
         },
         onError: (error: any) => {
+            setShowConfirmModal(false);
             toast.error(error.response?.data?.detail || "Failed to start update");
         }
     });
@@ -111,9 +115,13 @@ export default function SystemStatus() {
 
     const handleUpdateClick = () => {
         if (updateData?.remote_version) {
-            if (confirm(t('admin.confirm_update', 'Are you sure you want to update? The system will be restarted.'))) {
-                startUpdateMutation.mutate(updateData.remote_version);
-            }
+            setShowConfirmModal(true);
+        }
+    };
+
+    const confirmUpdate = () => {
+        if (updateData?.remote_version) {
+            startUpdateMutation.mutate(updateData.remote_version);
         }
     };
 
@@ -264,6 +272,29 @@ export default function SystemStatus() {
                     </div>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <Modal title={t('admin.confirm_update_title', 'Confirm Update')} onClose={() => setShowConfirmModal(false)}>
+                    <div className="space-y-4">
+                        <p>{t('admin.confirm_update', 'Are you sure you want to update? The system will be restarted.')}</p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="px-4 py-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                            >
+                                {t('admin.cancel', 'Cancel')}
+                            </button>
+                            <button
+                                onClick={confirmUpdate}
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 text-sm font-medium"
+                            >
+                                {t('admin.confirm', 'Confirm')}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
 
             {/* Update Progress Modal */}
             {isUpdateModalOpen && (

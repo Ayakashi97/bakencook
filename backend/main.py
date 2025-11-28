@@ -229,7 +229,7 @@ def check_for_updates(
         
         # Fetch tags
         root_dir = os.path.dirname(os.path.dirname(__file__))
-        subprocess.run(["git", "fetch", "--tags"], check=True, cwd=root_dir)
+        subprocess.run(["git", "fetch", "--tags", "--force"], check=True, cwd=root_dir)
         
         # Get all tags
         tags_output = subprocess.check_output(["git", "tag"], cwd=root_dir).strip().decode('utf-8')

@@ -47,24 +47,43 @@ log "Cleaning up directories..."
 # rm -rf frontend/node_modules
 
 # Database Cleanup
-read -p "Do you want to DELETE the database and user 'bakencook'? (DATA WILL BE LOST) (y/N) " -n 1 -r
+# Load .env to get database details
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+fi
+
+# Set defaults if not found in .env
+DB_NAME=${POSTGRES_DB:-bakencook}
+DB_USER=${POSTGRES_USER:-bakencook}
+
+# Database Cleanup
+read -p "Do you want to DELETE the database '$DB_NAME' and user '$DB_USER'? (DATA WILL BE LOST) (y/N) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     log "Deleting database and user..."
-    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw bakencook; then
-        sudo -u postgres psql -c "DROP DATABASE bakencook;"
-        log "Database 'bakencook' deleted."
+    
+    # Check and delete Database
+    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+        sudo -u postgres psql -c "DROP DATABASE $DB_NAME;"
+        log "Database '$DB_NAME' deleted."
+    else
+        warn "Database '$DB_NAME' not found."
     fi
     
-    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw bakencook; then
-        sudo -u postgres psql -c "DROP USER bakencook;"
-        log "User 'bakencook' deleted."
+    # Check and delete User
+    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw "$DB_USER"; then
+        sudo -u postgres psql -c "DROP USER $DB_USER;"
+        log "User '$DB_USER' deleted."
+    else
+        warn "User '$DB_USER' not found."
     fi
 else
     log "Database and user were preserved."
     log "To delete them manually later:"
-    log "  sudo -u postgres psql -c 'DROP DATABASE bakencook;'"
-    log "  sudo -u postgres psql -c 'DROP USER bakencook;'"
+    log "  sudo -u postgres psql -c 'DROP DATABASE $DB_NAME;'"
+    log "  sudo -u postgres psql -c 'DROP USER $DB_USER;'"
 fi
 
 log "Uninstallation Complete."

@@ -142,6 +142,9 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
         "smtp_password": init_data.smtp_password,
         "sender_email": init_data.sender_email,
         "favicon_url": init_data.favicon_base64,
+        "enable_registration": str(init_data.enable_registration),
+        "enable_email_verification": str(init_data.enable_email_verification),
+        "allow_guest_access": str(init_data.allow_guest_access),
     }
     
     for key, value in settings_to_save.items():

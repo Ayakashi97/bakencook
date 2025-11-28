@@ -11,12 +11,16 @@ const steps = [
     { id: 'welcome', title: 'Welcome', icon: Globe },
     { id: 'admin', title: 'Admin User', icon: User },
     { id: 'config', title: 'Configuration', icon: Settings },
+    { id: 'access', title: 'Access & Security', icon: User },
     { id: 'data', title: 'Data Import', icon: Database },
 ];
 
 interface OnboardingForm extends SystemInit {
     enable_ai: boolean;
     enable_smtp: boolean;
+    enable_registration: boolean;
+    enable_email_verification: boolean;
+    allow_guest_access: boolean;
 }
 
 export default function Onboarding() {
@@ -31,13 +35,23 @@ export default function Onboarding() {
             smtp_port: 587,
             favicon_base64: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍🍳</text></svg>',
             enable_ai: true,
-            enable_smtp: false
+            enable_smtp: false,
+            enable_registration: true,
+            enable_email_verification: false,
+            allow_guest_access: false
         }
     });
 
     const faviconPreview = watch('favicon_base64');
     const enableAi = watch('enable_ai');
     const enableSmtp = watch('enable_smtp');
+
+    // Effect to handle dependency: Email Verification requires SMTP
+    useEffect(() => {
+        if (!enableSmtp) {
+            setValue('enable_email_verification', false);
+        }
+    }, [enableSmtp, setValue]);
 
     const onSubmit = async (data: OnboardingForm) => {
         setIsSubmitting(true);
@@ -347,6 +361,66 @@ export default function Onboarding() {
                             )}
 
                             {currentStep === 3 && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+                                    <h2 className="text-2xl font-bold text-white mb-4">Access & Security</h2>
+                                    <p className="text-gray-300 mb-8">
+                                        Configure who can access your instance and how users are verified.
+                                    </p>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between">
+                                            <div>
+                                                <span className="text-white font-medium block">Enable Registration</span>
+                                                <span className="text-gray-400 text-sm block mt-1">
+                                                    Allow new users to create accounts.
+                                                </span>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" {...register('enable_registration')} className="sr-only peer" />
+                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
+                                            </label>
+                                        </div>
+
+                                        <div className={`bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between transition-opacity ${!enableSmtp ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                            <div>
+                                                <span className="text-white font-medium block">Require Email Verification</span>
+                                                <span className="text-gray-400 text-sm block mt-1">
+                                                    New users must verify their email before logging in. (Requires SMTP)
+                                                </span>
+                                                {!enableSmtp && (
+                                                    <span className="text-amber-400 text-xs block mt-2 font-medium">
+                                                        Requires SMTP to be enabled in Configuration step.
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <label className={`relative inline-flex items-center ${!enableSmtp ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    {...register('enable_email_verification')}
+                                                    disabled={!enableSmtp}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
+                                            </label>
+                                        </div>
+
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 flex items-center justify-between">
+                                            <div>
+                                                <span className="text-white font-medium block">Allow Guest Access</span>
+                                                <span className="text-gray-400 text-sm block mt-1">
+                                                    Allow public access to recipes marked as public without login.
+                                                </span>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" {...register('allow_guest_access')} className="sr-only peer" />
+                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentStep === 4 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
                                     <h2 className="text-2xl font-bold text-white mb-4">Data Initialization</h2>
                                     <p className="text-gray-300 mb-8">

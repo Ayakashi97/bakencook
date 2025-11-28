@@ -114,6 +114,9 @@ export interface SystemInit {
     sender_email?: string;
     import_data: boolean;
     favicon_base64?: string;
+    enable_registration: boolean;
+    enable_email_verification: boolean;
+    allow_guest_access: boolean;
 }
 
 export const checkSystemInit = async (): Promise<boolean> => {

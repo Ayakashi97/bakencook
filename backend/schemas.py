@@ -332,4 +332,7 @@ class SystemInit(BaseModel):
     sender_email: Optional[str] = None
     import_data: bool = False
     favicon_base64: Optional[str] = None # Optional favicon upload
+    enable_registration: bool = True
+    enable_email_verification: bool = False
+    allow_guest_access: bool = False
 

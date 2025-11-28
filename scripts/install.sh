@@ -132,6 +132,8 @@ npm install
 # Build (as current user)
 log "Building Frontend..."
 npm run build
+export VITE_API_URL="/api"
+npm run build
 
 # 5. Nginx Setup
 log "Configuring Nginx..."

@@ -39,7 +39,7 @@ class UserSession(UserSessionBase):
     user_id: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ScheduleBase(BaseModel):
     target_time: datetime
@@ -59,7 +59,7 @@ class Schedule(ScheduleBase):
     recipe: Optional['Recipe'] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RoleBase(BaseModel):
     name: str
@@ -75,7 +75,7 @@ class Role(RoleBase):
     id: str
     user_count: int = 0
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class User(UserBase):
     id: str
@@ -88,7 +88,7 @@ class User(UserBase):
     api_key: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserUpdateSettings(BaseModel):
     session_duration_minutes: int
@@ -135,7 +135,7 @@ class Ingredient(IngredientBase):
     chapter_id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StepBase(BaseModel):
     order_index: int
@@ -152,7 +152,7 @@ class Step(StepBase):
     chapter_id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RecipeBase(BaseModel):
     title: str
@@ -180,7 +180,7 @@ class Chapter(ChapterBase):
     steps: List[Step]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RecipeCreate(RecipeBase):
     chapters: List[ChapterCreate]
@@ -203,7 +203,7 @@ class Recipe(RecipeBase):
     is_favorited: Optional[bool] = False # Context-dependent
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RecipeImportRequest(BaseModel):
     url: str
@@ -228,7 +228,7 @@ class ImportJob(ImportJobBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 
@@ -292,7 +292,7 @@ class IngredientItem(IngredientItemBase):
     linked_recipe: Optional['Recipe'] = None  # We need to be careful with circular imports here, maybe use "Recipe" string or a simplified schema
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RecipePage(BaseModel):
     items: List[Recipe]
@@ -314,7 +314,7 @@ class SystemSetting(BaseModel):
     value: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class SystemSettingsUpdate(BaseModel):
     settings: Dict[str, str]

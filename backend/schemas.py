@@ -336,3 +336,6 @@ class SystemInit(BaseModel):
     enable_email_verification: bool = False
     allow_guest_access: bool = False
 
+class SystemVersion(BaseModel):
+    version: str
+    changelog: Optional[str] = None

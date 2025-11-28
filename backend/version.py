@@ -1,1 +1,12 @@
-APP_VERSION = "0.1.0"
+APP_import os
+
+def get_version():
+    try:
+        # Assuming VERSION is in the root directory, one level up from backend
+        version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'VERSION')
+        with open(version_file, 'r') as f:
+            return f.read().strip()
+    except Exception:
+        return "0.0.0"
+
+VERSION = get_version()

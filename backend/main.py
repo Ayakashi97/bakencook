@@ -198,6 +198,40 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
         
     return {"message": "System initialized successfully"}
 
+@app.get("/system/version", response_model=schemas.SystemVersion)
+def get_system_version():
+    from version import VERSION
+    return {"version": VERSION}
+
+@app.get("/system/changelog")
+def get_system_changelog():
+    changelog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CHANGELOG.md')
+    if os.path.exists(changelog_path):
+        with open(changelog_path, 'r') as f:
+            content = f.read()
+        return {"changelog": content}
+    return {"changelog": "Changelog not found."}
+
+@app.get("/system/check-update")
+def check_for_updates(current_user: models.User = Depends(has_permission("manage:system"))):
+    import subprocess
+    try:
+        # Fetch latest info from remote
+        subprocess.run(["git", "fetch"], check=True, cwd=os.path.dirname(os.path.dirname(__file__)))
+        
+        # Get current hash
+        current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=os.path.dirname(os.path.dirname(__file__))).strip().decode('utf-8')
+        
+        # Get remote hash
+        remote = subprocess.check_output(["git", "rev-parse", "@{u}"], cwd=os.path.dirname(os.path.dirname(__file__))).strip().decode('utf-8')
+        
+        if current != remote:
+            return {"update_available": True, "current_version": current, "remote_version": remote}
+        return {"update_available": False, "current_version": current}
+    except Exception as e:
+        print(f"Update check failed: {e}")
+        return {"update_available": False, "error": str(e)}
+
 
 # --- Auth ---
 

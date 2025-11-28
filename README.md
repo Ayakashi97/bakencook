@@ -9,6 +9,13 @@ A smart meal planning and recipe management application specialized for baking a
 - 🛒 **Shopping List**: Generate shopping lists from your meal plan.
 - 🌍 **Multi-language**: Support for English and German.
 
+## Updates
+To update the application, run:
+```bash
+./scripts/update.sh
+```
+For detailed instructions, see [docs/UPDATES.md](docs/UPDATES.md).
+
 ## Documentation
 - [**Setup Guide**](docs/SETUP.md): How to install and run the application.
 - [**User Guide**](docs/USAGE.md): How to use the features.

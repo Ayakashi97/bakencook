@@ -1,55 +1,51 @@
 #!/bin/bash
-
-# Bake'n'Cook Update Script
-# Run as a STANDARD USER (with sudo rights)
-
 set -e
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
-log() {
-    echo -e "${GREEN}[INFO] $1${NC}"
-}
-
-error() {
-    echo -e "${RED}[ERROR] $1${NC}"
-}
-
-# Check for sudo rights
-if ! sudo -v; then
-    error "This script requires sudo privileges. Please run as a user with sudo access."
-    exit 1
-fi
-
-PROJECT_DIR=$(pwd)
+# Configuration
+PROJECT_DIR="/home/baker/bakencook" # Adjust if needed, or use relative paths
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
+BACKUP_DIR="$PROJECT_DIR/backups"
 
-log "Starting update..."
+echo "Starting System Update..."
 
-# 1. Update Code
-log "Pulling latest code..."
-git pull origin main
+# 1. Backup Database
+echo "Creating database backup..."
+if [ -f "$PROJECT_DIR/scripts/backup_db.sh" ]; then
+    bash "$PROJECT_DIR/scripts/backup_db.sh"
+else
+    echo "Warning: backup_db.sh not found. Skipping backup."
+fi
 
-# 2. Update Backend
-log "Updating Backend..."
+# 2. Git Pull
+echo "Pulling latest changes..."
+cd "$PROJECT_DIR"
+git pull
+
+# 3. Update Backend
+echo "Updating Backend..."
 cd "$BACKEND_DIR"
-./venv/bin/pip install -r requirements.txt
+# Install python dependencies
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+fi
 
-log "Restarting Backend Service..."
-sudo systemctl restart bakencook-backend
+# Run Migrations
+echo "Running Database Migrations..."
+# Check if alembic is initialized
+if [ -f "alembic.ini" ]; then
+    # If this is the first run, we might need to stamp the DB if it already exists
+    # But for now, let's just upgrade
+    alembic upgrade head
+fi
 
-# 3. Update Frontend
-log "Updating Frontend..."
+# 4. Update Frontend
+echo "Updating Frontend..."
 cd "$FRONTEND_DIR"
+# Install node dependencies
 npm install
+# Build frontend
 npm run build
 
-# 4. Reload Nginx (Optional, but good practice)
-log "Reloading Nginx..."
-sudo systemctl reload nginx
-
-log "Update Complete!"
+echo "Update completed successfully."
+echo "Please restart the application services."

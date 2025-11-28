@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
+import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, ArrowUpCircle, FileText, GitBranch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
@@ -12,7 +12,7 @@ import { Modal } from '../components/Modal';
 
 export default function AdminSystem() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email' | 'updates'>('general');
 
     return (
         <div className="space-y-6">
@@ -30,6 +30,7 @@ export default function AdminSystem() {
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
                             { id: 'ai', label: t('admin.settings_ai', 'AI Features'), icon: Cpu },
                             { id: 'email', label: t('admin.settings_email', 'Email & SMTP'), icon: Mail },
+                            { id: 'updates', label: t('admin.settings_updates', 'Updates & Version'), icon: ArrowUpCircle },
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -53,6 +54,7 @@ export default function AdminSystem() {
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'email' && <EmailSettings />}
+                    {activeTab === 'updates' && <UpdateSettings />}
                 </div>
             </div>
 

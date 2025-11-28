@@ -1931,6 +1931,7 @@ import requests
 @app.post("/admin/system/email/test")
 def test_email_config(
     request: schemas.EmailTestRequest,
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     try:

@@ -160,7 +160,7 @@ npm install
 
 # Build (as current user)
 log "Building Frontend..."
-npm run build
+rm -rf dist
 export VITE_API_URL="/api"
 npm run build
 

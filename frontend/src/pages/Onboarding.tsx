@@ -207,7 +207,7 @@ export default function Onboarding() {
                     </div>
 
                     <div className="text-xs text-gray-500">
-                        {t('onboarding.sidebar.version', { appName: "Bake'n'Cook", version: __APP_VERSION__ })}
+                        {t('onboarding.sidebar.version', { appName: "Bake'n'Cook" })}
                     </div>
                 </div>
 

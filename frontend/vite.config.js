@@ -1,15 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import fs from 'fs'
-import path from 'path'
-
-const version = fs.readFileSync(path.resolve(__dirname, '../VERSION'), 'utf-8').trim()
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    define: {
-        '__APP_VERSION__': JSON.stringify(version)
-    },
     plugins: [react()],
     server: {
         host: '0.0.0.0',

@@ -438,7 +438,7 @@ i18n
                         "sidebar": {
                             "title": "Setup",
                             "subtitle": "Configure your new instance",
-                            "version": "v{{version}} • {{appName}}"
+                            "version": "v1.0.0 • {{appName}}"
                         },
                         "errors": {
                             "username_required": "Please enter a username",

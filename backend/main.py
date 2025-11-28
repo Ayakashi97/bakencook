@@ -136,11 +136,11 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
     settings_to_save = {
         "app_name": init_data.app_name,
         "gemini_api_key": init_data.gemini_api_key,
-        "smtp_server": init_data.smtp_server,
+        "smtp_host": init_data.smtp_server,
         "smtp_port": str(init_data.smtp_port) if init_data.smtp_port else None,
         "smtp_user": init_data.smtp_user,
         "smtp_password": init_data.smtp_password,
-        "sender_email": init_data.sender_email,
+        "smtp_from_email": init_data.sender_email,
         "favicon_url": init_data.favicon_base64,
         "enable_registration": str(init_data.enable_registration).lower(),
         "enable_email_verification": str(init_data.enable_email_verification).lower(),

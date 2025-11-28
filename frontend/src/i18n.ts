@@ -418,6 +418,18 @@ i18n
                             "title": "Setup",
                             "subtitle": "Configure your new instance",
                             "version": "v1.0.0 • {{appName}}"
+                        },
+                        "errors": {
+                            "username_required": "Please enter a username",
+                            "email_required": "Please enter an email address",
+                            "email_invalid": "Please enter a valid email address",
+                            "password_required": "Please enter a password",
+                            "password_length": "Password must be at least 8 characters",
+                            "gemini_key_required": "Please enter a Gemini API Key",
+                            "init_failed": "Failed to initialize system"
+                        },
+                        "success": {
+                            "init_complete": "System initialized successfully!"
                         }
                     },
 
@@ -885,6 +897,18 @@ i18n
                             "title": "Setup",
                             "subtitle": "Konfigurieren Sie Ihre neue Instanz",
                             "version": "v1.0.0 • {{appName}}"
+                        },
+                        "errors": {
+                            "username_required": "Bitte geben Sie einen Benutzernamen ein",
+                            "email_required": "Bitte geben Sie eine E-Mail-Adresse ein",
+                            "email_invalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+                            "password_required": "Bitte geben Sie ein Passwort ein",
+                            "password_length": "Passwort muss mindestens 8 Zeichen lang sein",
+                            "gemini_key_required": "Bitte geben Sie einen Gemini API Key ein",
+                            "init_failed": "Systeminitialisierung fehlgeschlagen"
+                        },
+                        "success": {
+                            "init_complete": "System erfolgreich initialisiert!"
                         }
                     },
                     "recipe.real_temp": "Reale Temperatur (°C)",

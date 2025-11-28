@@ -70,13 +70,21 @@ export default function Onboarding() {
             };
 
             await initializeSystem(payload);
-            toast.success('System initialized successfully!');
+            toast.success(t('onboarding.success.init_complete'));
             // Force reload to clear any cached state and ensure fresh start
             window.location.href = '/login';
         } catch (error) {
             console.error(error);
-            toast.error('Failed to initialize system');
+            toast.error(t('onboarding.errors.init_failed'));
             setIsSubmitting(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            if (e.target instanceof HTMLButtonElement) return;
+            e.preventDefault();
+            nextStep();
         }
     };
 
@@ -86,29 +94,29 @@ export default function Onboarding() {
             const { admin_username, admin_email, admin_password } = getValues();
 
             if (!admin_username || !admin_username.trim()) {
-                toast.error('Please enter a username');
+                toast.error(t('onboarding.errors.username_required'));
                 return;
             }
 
             if (!admin_email || !admin_email.trim()) {
-                toast.error('Please enter an email address');
+                toast.error(t('onboarding.errors.email_required'));
                 return;
             }
 
             // Basic Email Regex
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(admin_email)) {
-                toast.error('Please enter a valid email address');
+                toast.error(t('onboarding.errors.email_invalid'));
                 return;
             }
 
             if (!admin_password || !admin_password.trim()) {
-                toast.error('Please enter a password');
+                toast.error(t('onboarding.errors.password_required'));
                 return;
             }
 
             if (admin_password.length < 8) {
-                toast.error('Password must be at least 8 characters');
+                toast.error(t('onboarding.errors.password_length'));
                 return;
             }
         }
@@ -119,7 +127,7 @@ export default function Onboarding() {
 
             if (values.enable_ai) {
                 if (!values.gemini_api_key || !values.gemini_api_key.trim()) {
-                    toast.error('Please enter a Gemini API Key');
+                    toast.error(t('onboarding.errors.gemini_key_required'));
                     return;
                 }
             }
@@ -205,7 +213,7 @@ export default function Onboarding() {
 
                 {/* Content */}
                 <div className="flex-1 p-8 md:p-12 overflow-y-auto relative">
-                    <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
+                    <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleKeyDown} className="h-full flex flex-col">
 
                         <div className="flex-1">
                             {currentStep === 0 && (

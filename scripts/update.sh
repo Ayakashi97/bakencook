@@ -55,6 +55,7 @@ fi
 # Run Migrations
 echo "Running Database Migrations..."
 # Check if alembic is initialized
+if [ -f "alembic.ini" ]; then
     # If this is the first run, we might need to stamp the DB if it already exists
     # But for now, let's just upgrade
     echo "Upgrading database..."

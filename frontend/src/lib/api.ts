@@ -5,10 +5,11 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Upgrade to HTTPS if we are on HTTPS but API_URL is HTTP
 // This prevents Mixed Content errors when the API_URL is hardcoded to HTTP in the build
 const getBaseUrl = () => {
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && API_URL.startsWith('http://')) {
-        return API_URL.replace('http://', 'https://');
+    const url = API_URL.trim();
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.match(/^http:\/\//i)) {
+        return url.replace(/^http:\/\//i, 'https://');
     }
-    return API_URL;
+    return url;
 };
 
 export const api = axios.create({

@@ -140,6 +140,7 @@ export default function Profile() {
                         onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
                         className="space-y-4 max-w-md"
                     >
+                        <input type="text" autoComplete="username" className="hidden" />
                         <input
                             type="password"
                             autoComplete="current-password"

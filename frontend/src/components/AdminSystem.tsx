@@ -271,9 +271,10 @@ function AISettings() {
 
             <div className="space-y-2">
                 <label className="text-sm font-medium">{t('admin.gemini_api_key', 'Gemini API Key')}</label>
-                <div className="relative">
+                <form className="relative" onSubmit={(e) => e.preventDefault()}>
                     <input
                         type={showKey ? "text" : "password"}
+                        autoComplete="new-password"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm pr-10"
                         value={formData.gemini_api_key}
                         onChange={(e) => setFormData({ ...formData, gemini_api_key: e.target.value })}
@@ -286,7 +287,7 @@ function AISettings() {
                     >
                         {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
-                </div>
+                </form>
             </div>
 
             <button
@@ -399,13 +400,15 @@ function EmailSettings() {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">{t('admin.smtp_password', 'SMTP Password')}</label>
-                        <input
-                            type="password"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            value={formData.smtp_password}
-                            onChange={(e) => setFormData({ ...formData, smtp_password: e.target.value })}
-                            autoComplete="new-password"
-                        />
+                        <form onSubmit={(e) => e.preventDefault()}>
+                            <input
+                                type="password"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={formData.smtp_password}
+                                onChange={(e) => setFormData({ ...formData, smtp_password: e.target.value })}
+                                autoComplete="new-password"
+                            />
+                        </form>
                     </div>
 
                     <div className="space-y-2">

@@ -1943,9 +1943,9 @@ def test_email_config(
         
         msg = MIMEMultipart()
         
-        # Sanitize inputs
-        sender_email = request.sender_email.strip()
-        test_recipient = request.test_recipient.strip()
+        # Sanitize inputs - Aggressively remove non-breaking spaces
+        sender_email = request.sender_email.replace('\xa0', '').strip()
+        test_recipient = request.test_recipient.replace('\xa0', '').strip()
         
         msg['From'] = sender_email
         msg['To'] = test_recipient
@@ -1953,7 +1953,7 @@ def test_email_config(
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "BakeAssist"
-        app_name = app_name.strip()
+        app_name = app_name.replace('\xa0', ' ').strip()
 
         msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
         

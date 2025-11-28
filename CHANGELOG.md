@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.8] - 2025-11-28
+### Changes
+- chore: update dependencies
+
 ## [1.0.7] - 2025-11-28
 ### Changes
 - chore: update dependencies

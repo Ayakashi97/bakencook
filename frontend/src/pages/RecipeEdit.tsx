@@ -153,7 +153,7 @@ export default function RecipeEdit() {
 
             return api.post('/import/url', {
                 url,
-                language: i18n.language // Send current language (e.g. 'de' or 'en')
+                language: i18n.language.split('-')[0] // Send current language (e.g. 'de' or 'en')
             });
         },
         onSuccess: (data) => {

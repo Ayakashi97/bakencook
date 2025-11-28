@@ -32,7 +32,7 @@ export default function Planer() {
     const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const locale = i18n.language === 'de' ? de : enUS;
+    const locale = i18n.language.startsWith('de') ? de : enUS;
 
     // State
     const [view, setView] = useState<ViewMode>(() => {

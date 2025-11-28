@@ -16,7 +16,7 @@ export function LanguageToggle() {
             title="Switch Language"
         >
             <Languages className="h-[1.2rem] w-[1.2rem]" />
-            <span className="text-sm font-medium uppercase">{i18n.language}</span>
+            <span className="text-sm font-medium uppercase">{i18n.language.split('-')[0]}</span>
         </button>
     );
 }

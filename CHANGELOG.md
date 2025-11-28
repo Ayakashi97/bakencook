@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2-beta.17] - 2025-11-28
+### Changes
+- fix: remove unused useEffect import
+- fix: add missing translations and use modal for update confirmation
+
 ## [1.0.2-beta.15] - 2025-11-28
 ### Changes
 - fix: add missing translations and system settings endpoint

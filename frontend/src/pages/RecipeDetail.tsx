@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Recipe } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { Edit, Trash2, Clock, Users, ArrowLeft, Globe, ChefHat, Calendar, Heart, Star, StarHalf, Scale, Printer, Plus, X, Check, Search, Image as ImageIcon, Utensils } from 'lucide-react';
+import { Edit, Trash2, Clock, Users, ArrowLeft, Globe, ChefHat, Calendar, Heart, Star, StarHalf, Scale, Printer, Plus, X, Check, Search, Image as ImageIcon, Utensils, MoreVertical } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,7 @@ export default function RecipeDetail() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showPlanningModal, setShowPlanningModal] = useState(false);
     const [showIngredientsModal, setShowIngredientsModal] = useState(false);
+    const [showMobileMenu, setShowMobileMenu] = useState(false);
 
     const { data: recipe, isLoading } = useQuery({
         queryKey: ['recipe', id],
@@ -283,57 +284,128 @@ export default function RecipeDetail() {
                 <div className="flex gap-2">
                     {!isEditing ? (
                         <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="glass"
-                                onClick={() => setShowIngredientsModal(true)}
-                            >
-                                <ChefHat className="w-4 h-4 mr-2" />
-                                {t('recipe.ingredients') || "Ingredients"}
-                            </Button>
+                            <div className="hidden md:flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="glass"
+                                    onClick={() => setShowIngredientsModal(true)}
+                                >
+                                    <ChefHat className="w-4 h-4 mr-2" />
+                                    {t('recipe.ingredients') || "Ingredients"}
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="glass"
-                                onClick={() => setShowPlanningModal(true)}
-                            >
-                                <Calendar className="w-4 h-4 mr-2" />
-                                {t('recipe.planning_example') || "Planning Example"}
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="glass"
+                                    onClick={() => setShowPlanningModal(true)}
+                                >
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    {t('recipe.planning_example') || "Planning Example"}
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="glass"
-                                onClick={() => window.print()}
-                            >
-                                <Printer className="w-4 h-4 mr-2" />
-                                {t('common.print') || "Print"}
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="glass"
+                                    onClick={() => window.print()}
+                                >
+                                    <Printer className="w-4 h-4 mr-2" />
+                                    {t('common.print') || "Print"}
+                                </Button>
 
-                            {canEdit && (
-                                <>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="glass"
-                                        onClick={() => setIsEditing(true)}
-                                    >
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        {t('common.edit') || "Edit"}
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => setShowDeleteModal(true)}
-                                    >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        {t('common.delete') || "Delete"}
-                                    </Button>
-                                </>
-                            )}
+                                {canEdit && (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="glass"
+                                            onClick={() => setIsEditing(true)}
+                                        >
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            {t('common.edit') || "Edit"}
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => setShowDeleteModal(true)}
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            {t('common.delete') || "Delete"}
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="md:hidden relative">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                                >
+                                    <MoreVertical className="w-5 h-5" />
+                                </Button>
+
+                                {showMobileMenu && (
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-popover border border-border rounded-md shadow-lg z-50 py-1 flex flex-col">
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                            onClick={() => {
+                                                setShowIngredientsModal(true);
+                                                setShowMobileMenu(false);
+                                            }}
+                                        >
+                                            <ChefHat className="w-4 h-4 mr-2" />
+                                            {t('recipe.ingredients') || "Ingredients"}
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                            onClick={() => {
+                                                setShowPlanningModal(true);
+                                                setShowMobileMenu(false);
+                                            }}
+                                        >
+                                            <Calendar className="w-4 h-4 mr-2" />
+                                            {t('recipe.planning_example') || "Planning Example"}
+                                        </button>
+                                        <button
+                                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                            onClick={() => {
+                                                window.print();
+                                                setShowMobileMenu(false);
+                                            }}
+                                        >
+                                            <Printer className="w-4 h-4 mr-2" />
+                                            {t('common.print') || "Print"}
+                                        </button>
+                                        {canEdit && (
+                                            <>
+                                                <button
+                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                                    onClick={() => {
+                                                        setIsEditing(true);
+                                                        setShowMobileMenu(false);
+                                                    }}
+                                                >
+                                                    <Edit className="w-4 h-4 mr-2" />
+                                                    {t('common.edit') || "Edit"}
+                                                </button>
+                                                <button
+                                                    className="w-full text-left px-4 py-2 text-sm hover:bg-destructive/10 text-destructive flex items-center"
+                                                    onClick={() => {
+                                                        setShowDeleteModal(true);
+                                                        setShowMobileMenu(false);
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-2" />
+                                                    {t('common.delete') || "Delete"}
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </>
                     ) : (
                         <>

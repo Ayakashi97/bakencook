@@ -1410,7 +1410,7 @@ def create_recipe(
     
     return db_recipe
 
-@app.get("/recipes/", response_model=schemas.RecipePage)
+@app.get("/recipes", response_model=schemas.RecipePage)
 def read_recipes(
     skip: int = 0, 
     limit: int = 12, 

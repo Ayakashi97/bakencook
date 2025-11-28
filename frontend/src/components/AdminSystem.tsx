@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, ArrowUpCircle, Loader2, Download, CheckCircle2 } from 'lucide-react';
+import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
 import { Modal } from '../components/Modal';
-
+import SystemStatus from './SystemStatus';
 
 
 export default function AdminSystem() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email' | 'updates'>('general');
+    const [activeTab, setActiveTab] = useState<'status' | 'general' | 'access' | 'ai' | 'email'>('status');
 
     return (
         <div className="space-y-6">
@@ -26,11 +26,11 @@ export default function AdminSystem() {
                 <div className="border-b border-white/10">
                     <nav className="flex -mb-px px-6 overflow-x-auto">
                         {[
+                            { id: 'status', label: t('admin.tab_status', 'Status'), icon: Activity },
                             { id: 'general', label: t('admin.settings_general', 'General'), icon: Globe },
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
                             { id: 'ai', label: t('admin.settings_ai', 'AI Features'), icon: Cpu },
                             { id: 'email', label: t('admin.settings_email', 'Email & SMTP'), icon: Mail },
-                            { id: 'updates', label: t('admin.settings_updates', 'Updates & Version'), icon: ArrowUpCircle },
                         ].map((tab) => (
                             <button
                                 key={tab.id}
@@ -50,11 +50,11 @@ export default function AdminSystem() {
                 </div>
 
                 <div className="p-6">
+                    {activeTab === 'status' && <SystemStatus />}
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'email' && <EmailSettings />}
-                    {activeTab === 'updates' && <UpdateSettings />}
                 </div>
             </div>
 
@@ -458,228 +458,6 @@ function EmailSettings() {
                     </button>
                 )}
             </div>
-        </div>
-    );
-}
-
-function UpdateSettings() {
-    const { t } = useTranslation();
-    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-    const [updateStatus, setUpdateStatus] = useState<string>('idle');
-    const [updateLog, setUpdateLog] = useState<string[]>([]);
-    const queryClient = useQueryClient();
-
-    // Fetch Version
-    const { data: versionData, isLoading: isLoadingVersion } = useQuery({
-        queryKey: ['systemVersion'],
-        queryFn: async () => {
-            const res = await api.get('/system/version');
-            return res.data;
-        }
-    });
-
-    // Fetch Changelog
-    const { data: changelogData } = useQuery({
-        queryKey: ['systemChangelog'],
-        queryFn: async () => {
-            const res = await api.get('/system/changelog');
-            return res.data;
-        }
-    });
-
-    // Check Updates
-    const { data: updateData, isLoading: isLoadingUpdate, refetch: checkUpdates } = useQuery({
-        queryKey: ['systemUpdateCheck'],
-        queryFn: async () => {
-            const res = await api.get('/system/check-update');
-            return res.data;
-        },
-        enabled: false // Don't check automatically on mount, or maybe do? Let's keep manual for now or auto?
-        // Actually, let's check on mount
-    });
-
-    // Auto check on mount
-    useEffect(() => {
-        checkUpdates();
-    }, []);
-
-    // Update Channel Settings
-    const { data: settings } = useQuery({
-        queryKey: ['systemSettings'],
-        queryFn: async () => {
-            const res = await api.get('/system/settings');
-            return res.data;
-        }
-    });
-
-    const updateChannelMutation = useMutation({
-        mutationFn: async (channel: string) => {
-            await api.put('/system/settings', { update_channel: channel });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['systemSettings'] });
-            toast.success(t('common.saved'));
-            checkUpdates(); // Re-check updates after channel change
-        }
-    });
-
-    // Start Update Mutation
-    const startUpdateMutation = useMutation({
-        mutationFn: async (version: string) => {
-            await api.post('/system/update', { version });
-        },
-        onSuccess: () => {
-            setIsUpdateModalOpen(true);
-            setUpdateStatus('running');
-            setUpdateLog(['Starting update...']);
-        },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.detail || "Failed to start update");
-        }
-    });
-
-    // Poll Update Status
-    useQuery({
-        queryKey: ['updateStatus'],
-        queryFn: async () => {
-            if (!isUpdateModalOpen || updateStatus === 'completed' || updateStatus === 'failed') return null;
-            const res = await api.get('/system/update-status');
-            setUpdateStatus(res.data.status);
-            setUpdateLog(res.data.log);
-            return res.data;
-        },
-        enabled: isUpdateModalOpen && updateStatus === 'running',
-        refetchInterval: 1000,
-    });
-
-    const handleUpdateClick = () => {
-        if (updateData?.remote_version) {
-            if (confirm(t('admin.confirm_update', 'Are you sure you want to update? The system will be restarted.'))) {
-                startUpdateMutation.mutate(updateData.remote_version);
-            }
-        }
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-                <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                    <h3 className="font-semibold mb-2">{t('admin.current_version')}</h3>
-                    {isLoadingVersion ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <div className="text-2xl font-bold">{versionData?.version}</div>
-                    )}
-                </div>
-
-                <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                    <h3 className="font-semibold mb-2">{t('admin.update_channel')}</h3>
-                    <select
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={settings?.update_channel || 'stable'}
-                        onChange={(e) => updateChannelMutation.mutate(e.target.value)}
-                    >
-                        <option value="stable">Stable (Releases)</option>
-                        <option value="beta">Beta (Pre-releases)</option>
-                    </select>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        {t('admin.channel_desc', 'Select "Beta" to receive early access updates.')}
-                    </p>
-                </div>
-            </div>
-
-            <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-semibold">{t('admin.check_updates')}</h3>
-                    <button
-                        onClick={() => checkUpdates()}
-                        disabled={isLoadingUpdate}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-                    >
-                        {isLoadingUpdate ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                        {t('admin.check_now')}
-                    </button>
-                </div>
-
-                {updateData?.update_available ? (
-                    <div className="bg-green-500/10 text-green-600 p-4 rounded-md border border-green-500/20">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-green-500/20 rounded-full">
-                                <Download className="h-5 w-5" />
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold">{t('admin.update_available')}</h4>
-                                <p className="text-sm mt-1">
-                                    {t('admin.new_version_found')}: <span className="font-mono font-bold">{updateData.remote_version}</span>
-                                </p>
-                                <div className="mt-4">
-                                    <button
-                                        onClick={handleUpdateClick}
-                                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2"
-                                    >
-                                        {t('admin.update_now', 'Update Now')}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-center py-6 text-muted-foreground">
-                        <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>{t('admin.system_up_to_date')}</p>
-                    </div>
-                )}
-            </div>
-
-            <div className="p-4 rounded-lg border bg-card text-card-foreground shadow-sm">
-                <h3 className="font-semibold mb-4">{t('admin.changelog')}</h3>
-                <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-md h-64 overflow-y-auto">
-                    <pre className="whitespace-pre-wrap font-sans">{changelogData?.changelog || 'Loading...'}</pre>
-                </div>
-            </div>
-
-            {/* Update Progress Modal */}
-            {isUpdateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                    <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
-                        <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-                            <h2 className="text-lg font-semibold leading-none tracking-tight">
-                                {updateStatus === 'running' ? t('admin.updating', 'Updating System...') :
-                                    updateStatus === 'completed' ? t('admin.update_completed', 'Update Completed') :
-                                        t('admin.update_failed', 'Update Failed')}
-                            </h2>
-                            <p className="text-sm text-muted-foreground">
-                                {t('admin.update_desc', 'Please wait while the system updates. Do not close this window.')}
-                            </p>
-                        </div>
-
-                        <div className="bg-black text-green-400 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto">
-                            {updateLog.map((line, i) => (
-                                <div key={i}>{line}</div>
-                            ))}
-                            {updateStatus === 'running' && (
-                                <div className="animate-pulse">_</div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end gap-2">
-                            {updateStatus !== 'running' && (
-                                <button
-                                    onClick={() => {
-                                        setIsUpdateModalOpen(false);
-                                        if (updateStatus === 'completed') {
-                                            window.location.reload();
-                                        }
-                                    }}
-                                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                                >
-                                    {updateStatus === 'completed' ? t('common.reload', 'Reload') : t('common.close', 'Close')}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

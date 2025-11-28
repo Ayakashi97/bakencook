@@ -258,7 +258,8 @@ export default function RecipeDetail() {
 
     const getIngredientName = (ing: any) => {
         if (typeof ing.name === 'string') return ing.name;
-        return ing.name[i18n.language] || ing.name['en'] || Object.values(ing.name)[0];
+        const lang = i18n.language.split('-')[0];
+        return ing.name[lang] || ing.name['en'] || Object.values(ing.name)[0];
     };
 
     const scaleAmount = (amount: number) => {
@@ -699,7 +700,7 @@ export default function RecipeDetail() {
                                                                             const newChapters = [...editedRecipe.chapters];
 
                                                                             // Always update as object since API requires it
-                                                                            const lang = i18n.language;
+                                                                            const lang = i18n.language.split('-')[0];
                                                                             const currentName = newChapters[idx].ingredients[i].name;
                                                                             newChapters[idx].ingredients[i].name = {
                                                                                 ...currentName,
@@ -1327,7 +1328,8 @@ function IngredientOverviewModal({ recipe, currentYield, onClose }: { recipe: Re
 
     const getIngredientName = (ing: any) => {
         if (typeof ing.name === 'string') return ing.name;
-        return ing.name[i18n.language] || ing.name['en'] || Object.values(ing.name)[0];
+        const lang = i18n.language.split('-')[0];
+        return ing.name[lang] || ing.name['en'] || Object.values(ing.name)[0];
     };
 
     const scaleAmount = (amount: number) => {

@@ -73,7 +73,8 @@ export default function AdminUnits() {
     const getLocalizedDescription = (descObj: any): string => {
         if (!descObj) return '';
         if (typeof descObj === 'string') return descObj;
-        const val = descObj[i18n.language] || descObj['en'] || Object.values(descObj)[0];
+        const lang = i18n.language.split('-')[0];
+        const val = descObj[lang] || descObj['en'] || Object.values(descObj)[0];
         return val ? String(val) : '';
     };
 
@@ -82,7 +83,8 @@ export default function AdminUnits() {
         // Handle if nameObj is just a string (legacy/fallback)
         if (typeof nameObj === 'string') return nameObj;
 
-        const langObj = nameObj[i18n.language] || nameObj['en'] || Object.values(nameObj)[0];
+        const lang = i18n.language.split('-')[0];
+        const langObj = nameObj[lang] || nameObj['en'] || Object.values(nameObj)[0];
         if (!langObj) return '';
         if (typeof langObj === 'string') return langObj;
         return langObj[type] ? String(langObj[type]) : '';

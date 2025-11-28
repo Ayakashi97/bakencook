@@ -104,7 +104,7 @@ export default function AdminIngredients() {
         if (!nameObj) return '';
         if (typeof nameObj === 'string') return nameObj;
 
-        const lang = i18n.language || 'en';
+        const lang = i18n.language.split('-')[0] || 'en';
         let value = nameObj[lang] || nameObj['en'];
 
         // Handle nested singular/plural structure
@@ -136,7 +136,8 @@ export default function AdminIngredients() {
         const descObj = unit.description;
         if (!descObj) return '';
         if (typeof descObj === 'string') return descObj;
-        const val = descObj[i18n.language] || descObj['en'] || Object.values(descObj)[0];
+        const lang = i18n.language.split('-')[0];
+        const val = descObj[lang] || descObj['en'] || Object.values(descObj)[0];
         return val ? String(val) : '';
     };
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, ArrowUpCircle, FileText, GitBranch } from 'lucide-react';
+import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff, ArrowUpCircle, Loader2, Download, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
@@ -479,7 +479,7 @@ function UpdateSettings() {
     });
 
     // Fetch Changelog
-    const { data: changelogData, isLoading: isLoadingChangelog } = useQuery({
+    const { data: changelogData } = useQuery({
         queryKey: ['systemChangelog'],
         queryFn: async () => {
             const res = await api.get('/system/changelog');

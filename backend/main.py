@@ -1948,7 +1948,12 @@ def test_email_config(
         
         # Sanitize inputs - Aggressively remove non-breaking spaces
         sender_email = request.sender_email.replace('\xa0', '').strip()
-        test_recipient = request.test_recipient.replace('\xa0', '').strip()
+        
+        # User requested to send to logged in user
+        if not current_user.email:
+             raise HTTPException(status_code=400, detail="Current user has no email address configured")
+             
+        test_recipient = current_user.email.replace('\xa0', '').strip()
         
         msg['From'] = sender_email
         msg['To'] = test_recipient
@@ -1959,9 +1964,6 @@ def test_email_config(
         # Normalize app_name: remove nbsp, replace smart quotes
         app_name = app_name.replace('\xa0', ' ').replace('’', "'").strip()
         
-        print(f"DEBUG: app_name normalized: {repr(app_name)}")
-        print(f"DEBUG: smtp_user raw: {repr(request.smtp_user)}")
-
         msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
         
         # Sanitize username
@@ -1970,7 +1972,6 @@ def test_email_config(
         body = f"Hello {username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-        print("DEBUG: Connecting to SMTP server...")
         server = smtplib.SMTP(request.smtp_server, request.smtp_port)
         server.starttls()
         
@@ -1978,19 +1979,11 @@ def test_email_config(
         smtp_user = request.smtp_user.replace('\xa0', '').strip()
         smtp_password = request.smtp_password.replace('\xa0', '').strip()
         
-        print("DEBUG: Logging in...")
         server.login(smtp_user, smtp_password)
-        print("DEBUG: Login success")
         
         # Ensure the message is converted to a string properly
-        try:
-            text = msg.as_string()
-            print(f"DEBUG: msg.as_string() success. Len: {len(text)}")
-        except Exception as e:
-            print(f"DEBUG: msg.as_string() FAILED: {e}")
-            raise e
+        text = msg.as_string()
         
-        print("DEBUG: Sending mail...")
         server.sendmail(sender_email, test_recipient, text)
         server.quit()
         

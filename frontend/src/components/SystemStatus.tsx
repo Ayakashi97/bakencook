@@ -99,7 +99,7 @@ export default function SystemStatus() {
 
     const updateChannelMutation = useMutation({
         mutationFn: async (channel: string) => {
-            await api.put('/system/settings', { update_channel: channel });
+            await api.post('/system/settings', { update_channel: channel });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['systemSettings'] });

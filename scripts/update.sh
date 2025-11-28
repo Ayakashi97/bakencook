@@ -5,6 +5,14 @@ set -e
 # Get the directory where the script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# Load .env file if it exists
+if [ -f "$PROJECT_DIR/.env" ]; then
+    echo "Loading configuration from .env..."
+    set -a
+    source "$PROJECT_DIR/.env"
+    set +a
+fi
+
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 BACKUP_DIR="$PROJECT_DIR/backups"
@@ -47,10 +55,18 @@ fi
 # Run Migrations
 echo "Running Database Migrations..."
 # Check if alembic is initialized
-if [ -f "alembic.ini" ]; then
     # If this is the first run, we might need to stamp the DB if it already exists
     # But for now, let's just upgrade
     echo "Upgrading database..."
+    
+    # Check if running in Docker and restart backend to clear locks
+    if command -v docker &> /dev/null && docker ps | grep -q "bakencook_backend"; then
+        echo "Restarting backend container to clear DB locks..."
+        docker restart bakencook_backend
+        echo "Waiting for backend to restart..."
+        sleep 5
+    fi
+
     python3 -m alembic upgrade head
 fi
 

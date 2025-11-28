@@ -350,7 +350,7 @@ i18n
                     "upload_btn": "Upload",
                     "create_ingredient": "Create Ingredient",
                     "create_ingredient_desc": "Create a new ingredient. This will require approval by an administrator.",
-                    "pending_approval": "Pending Approval",
+
                     "search.placeholder": "Search recipes...",
                     "search.type_to_search": "Type to search...",
                     "search.no_results": "No results found.",

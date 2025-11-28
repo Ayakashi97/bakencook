@@ -1943,6 +1943,9 @@ def test_email_config(
         
         msg = MIMEMultipart()
         
+        print(f"DEBUG: sender_email raw: {repr(request.sender_email)}")
+        print(f"DEBUG: test_recipient raw: {repr(request.test_recipient)}")
+        
         # Sanitize inputs - Aggressively remove non-breaking spaces
         sender_email = request.sender_email.replace('\xa0', '').strip()
         test_recipient = request.test_recipient.replace('\xa0', '').strip()

@@ -287,11 +287,16 @@ function AISettings() {
                         {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                 </div>
-                <p className="text-xs text-muted-foreground">{t('admin.gemini_api_key_desc', 'Leave blank to use system environment variable')}</p>
             </div>
 
             <button
-                onClick={() => updateSettingsMutation.mutate(formData)}
+                onClick={() => {
+                    if (formData.enable_ai === 'true' && !formData.gemini_api_key.trim()) {
+                        toast.error(t('onboarding.errors.gemini_key_required', 'Please enter a Gemini API Key'));
+                        return;
+                    }
+                    updateSettingsMutation.mutate(formData);
+                }}
                 disabled={updateSettingsMutation.isPending}
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium"
             >

@@ -7,7 +7,7 @@ i18n
     .use(initReactI18next)
     .init({
         debug: true,
-        fallbackLng: 'en',
+        fallbackLng: 'de',
         interpolation: {
             escapeValue: false, // not needed for react as it escapes by default
         },
@@ -672,7 +672,6 @@ i18n
                         enable_ai: "KI-Funktionen aktivieren",
                         enable_ai_desc: "Rezeptimport und -parsing via KI aktivieren",
                         gemini_api_key: "Gemini API Key",
-                        gemini_api_key_desc: "Leer lassen, um System-Umgebungsvariable zu nutzen",
                         allow_guest_access: "Gastzugriff",
                         allow_guest_access_desc: "Unangemeldeten Benutzern das Ansehen öffentlicher Rezepte erlauben",
                         enable_registration: "Benutzerregistrierung",

@@ -361,6 +361,39 @@ def get_update_status(
         "log": update_process_state["log"][-50:]
     }
 
+@app.get("/system/settings")
+def get_system_settings(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    # Fetch update channel
+    channel_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
+    channel = channel_setting.value if channel_setting else "stable"
+    
+    return {
+        "update_channel": channel
+    }
+
+@app.post("/system/settings")
+def update_system_settings(
+    settings: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    if "update_channel" in settings:
+        channel = settings["update_channel"]
+        if channel not in ["stable", "beta"]:
+            raise HTTPException(status_code=400, detail="Invalid channel")
+            
+        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
+        if setting:
+            setting.value = channel
+        else:
+            db.add(models.SystemSetting(key="update_channel", value=channel))
+            
+    db.commit()
+    return {"message": "Settings updated"}
+
 
 # --- Auth ---
 

@@ -61,6 +61,17 @@ else
     log ".env already exists. Using existing values."
 fi
 
+# FORCE FIXES for Local Install (in case .env was copied from docker or is old)
+if grep -q "@db" .env; then
+    log "Fixing database host in .env (db -> localhost)..."
+    sed -i "s|@db|@localhost|" .env
+fi
+
+if ! grep -q "VITE_API_URL" .env; then
+    log "Adding VITE_API_URL to .env..."
+    echo "VITE_API_URL=/api" >> .env
+fi
+
 # Load variables from .env
 set -a
 source "$PROJECT_DIR/.env"

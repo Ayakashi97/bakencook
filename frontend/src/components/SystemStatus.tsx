@@ -26,6 +26,10 @@ export default function SystemStatus() {
     const [updateStatus, setUpdateStatus] = useState<string>('idle');
     const [updateLog, setUpdateLog] = useState<string[]>([]);
 
+    // New state for restart handling
+    const [isRestarting, setIsRestarting] = useState(false);
+    const [countdown, setCountdown] = useState<number | null>(null);
+
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const logContainerRef = useRef<HTMLDivElement>(null);
@@ -35,6 +39,20 @@ export default function SystemStatus() {
             logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
         }
     }, [updateLog]);
+
+    // Countdown Effect
+    useEffect(() => {
+        if (isRestarting && countdown === null) {
+            setCountdown(5);
+        }
+
+        if (countdown !== null && countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (countdown === 0) {
+            window.location.reload();
+        }
+    }, [isRestarting, countdown]);
 
     // --- System Info ---
     const { data: systemInfo, isLoading: isLoadingInfo } = useQuery<SystemInfo>({
@@ -100,6 +118,8 @@ export default function SystemStatus() {
             setIsUpdateModalOpen(true);
             setUpdateStatus('running');
             setUpdateLog(['Starting update...']);
+            setIsRestarting(false);
+            setCountdown(null);
         },
         onError: (error: any) => {
             setShowConfirmModal(false);
@@ -111,14 +131,38 @@ export default function SystemStatus() {
     useQuery({
         queryKey: ['updateStatus'],
         queryFn: async () => {
-            if (!isUpdateModalOpen || updateStatus === 'completed' || updateStatus === 'failed') return null;
-            const res = await api.get('/system/update-status');
-            setUpdateStatus(res.data.status);
-            setUpdateLog(res.data.log);
-            return res.data;
+            if (!isUpdateModalOpen || updateStatus === 'completed' || updateStatus === 'failed' || isRestarting) return null;
+            try {
+                const res = await api.get('/system/update-status');
+
+                // If status goes back to idle while we were running, it likely restarted
+                if (res.data.status === 'idle' && updateStatus === 'running') {
+                    setIsRestarting(true);
+                    setUpdateStatus('completed'); // Treat as completed
+                    return res.data;
+                }
+
+                setUpdateStatus(res.data.status);
+                setUpdateLog(res.data.log);
+
+                if (res.data.status === 'completed') {
+                    setIsRestarting(true);
+                }
+
+                return res.data;
+            } catch (error) {
+                // Network error likely means backend is restarting
+                if (updateStatus === 'running') {
+                    console.log("Update status check failed, assuming restart...");
+                    setIsRestarting(true);
+                    setUpdateStatus('completed');
+                }
+                return null;
+            }
         },
-        enabled: isUpdateModalOpen && updateStatus === 'running',
+        enabled: isUpdateModalOpen && updateStatus === 'running' && !isRestarting,
         refetchInterval: 1000,
+        retry: false // Don't retry on error, handle it manually
     });
 
     const handleUpdateClick = () => {
@@ -323,12 +367,15 @@ export default function SystemStatus() {
                         <div className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg">
                             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
                                 <h2 className="text-lg font-semibold leading-none tracking-tight">
-                                    {updateStatus === 'running' ? t('admin.updating', 'Updating System...') :
-                                        updateStatus === 'completed' ? t('admin.update_completed', 'Update Completed') :
-                                            t('admin.update_failed', 'Update Failed')}
+                                    {isRestarting ? t('admin.update_restarting', 'Update Successful! Restarting...') :
+                                        updateStatus === 'running' ? t('admin.updating', 'Updating System...') :
+                                            updateStatus === 'completed' ? t('admin.update_completed', 'Update Completed') :
+                                                t('admin.update_failed', 'Update Failed')}
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    {t('admin.update_desc', 'Please wait while the system updates. Do not close this window.')}
+                                    {isRestarting
+                                        ? t('admin.update_restarting_desc', 'The system is restarting. Page will refresh in {{seconds}} seconds.', { seconds: countdown })
+                                        : t('admin.update_desc', 'Please wait while the system updates. Do not close this window.')}
                                 </p>
                             </div>
 
@@ -336,16 +383,23 @@ export default function SystemStatus() {
                                 ref={logContainerRef}
                                 className="bg-black text-green-400 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto"
                             >
-                                {updateLog.map((line, i) => (
+                                {updateLog.map((line: string, i: number) => (
                                     <div key={i}>{line}</div>
                                 ))}
-                                {updateStatus === 'running' && (
+                                {updateStatus === 'running' && !isRestarting && (
                                     <div className="animate-pulse">_</div>
+                                )}
+                                {isRestarting && (
+                                    <div className="text-yellow-400 mt-2">
+                                        {`> System restart detected.`}
+                                        <br />
+                                        {`> Refreshing in ${countdown}s...`}
+                                    </div>
                                 )}
                             </div>
 
                             <div className="flex justify-end gap-2">
-                                {updateStatus !== 'running' && (
+                                {!isRestarting && updateStatus !== 'running' && (
                                     <button
                                         onClick={() => {
                                             setIsUpdateModalOpen(false);

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2-beta.18] - 2025-11-28
+### Changes
+- fix: make service restart in update script non-blocking
+- fix: remove unused useEffect import
+- fix: add missing translations and use modal for update confirmation
+
 ## [1.0.2-beta.17] - 2025-11-28
 ### Changes
 - fix: remove unused useEffect import

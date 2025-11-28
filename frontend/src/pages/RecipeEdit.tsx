@@ -72,7 +72,7 @@ export default function RecipeEdit() {
                 const [ingRes, unitRes, recipeRes] = await Promise.all([
                     api.get('/admin/ingredients'),
                     api.get('/admin/units'),
-                    api.get('/recipes/')
+                    api.get('/recipes')
                 ]);
                 setAvailableIngredients(ingRes.data);
                 setAvailableUnits(unitRes.data);

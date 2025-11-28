@@ -34,8 +34,15 @@
         GEMINI_API_KEY=<your_gemini_api_key>
 
         # Frontend
-        VITE_API_URL=http://localhost:8000
+        # Frontend API URL
+        # For Docker/Nginx (Reverse Proxy): Use /api
+        # For Local Dev (npm run dev): Use http://localhost:8000
+        VITE_API_URL=/api
         ```
+
+    ### VITE_API_URL Configuration
+    - **Docker / Nginx / Production**: Set `VITE_API_URL=/api`. This allows the frontend to use relative paths, which are then routed by Nginx to the backend. This avoids Mixed Content issues (HTTP backend on HTTPS site).
+    - **Local Development**: If running `npm run dev` and `uvicorn` separately without a proxy, set `VITE_API_URL=http://localhost:8000`.
 
     *Note: The **Gemini API Key** can be set here or configured later via the **Onboarding Wizard** or **Admin Dashboard**.*
 

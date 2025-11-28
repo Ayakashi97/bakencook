@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { RefreshCw, Activity, Database, Server, Globe, Bot, Download, CheckCircle2, Loader2, ArrowUpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
-import { Modal } from './Modal';
 
 interface SystemInfo {
     version: string;

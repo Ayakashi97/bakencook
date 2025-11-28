@@ -16,8 +16,13 @@ We provide a script to automate the update process. This script will:
 
 **To run the update:**
 ```bash
-./scripts/update.sh
+./scripts/update.sh [version]
 ```
+Example:
+```bash
+./scripts/update.sh v1.0.1
+```
+If no version is specified, it will pull the latest changes from the current branch.
 
 **Note:** You may need to restart your application services (Docker containers or systemd services) after the update completes.
 

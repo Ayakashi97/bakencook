@@ -213,21 +213,72 @@ def get_system_changelog():
     return {"changelog": "Changelog not found."}
 
 @app.get("/system/check-update")
-def check_for_updates(current_user: models.User = Depends(has_permission("manage:system"))):
+@app.get("/system/check-update")
+def check_for_updates(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
     import subprocess
+    import re
+    from packaging import version
+    
     try:
-        # Fetch latest info from remote
-        subprocess.run(["git", "fetch"], check=True, cwd=os.path.dirname(os.path.dirname(__file__)))
+        # Get Update Channel
+        channel_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
+        channel = channel_setting.value if channel_setting else "stable"
         
-        # Get current hash
-        current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=os.path.dirname(os.path.dirname(__file__))).strip().decode('utf-8')
+        # Fetch tags
+        root_dir = os.path.dirname(os.path.dirname(__file__))
+        subprocess.run(["git", "fetch", "--tags"], check=True, cwd=root_dir)
         
-        # Get remote hash
-        remote = subprocess.check_output(["git", "rev-parse", "@{u}"], cwd=os.path.dirname(os.path.dirname(__file__))).strip().decode('utf-8')
+        # Get all tags
+        tags_output = subprocess.check_output(["git", "tag"], cwd=root_dir).strip().decode('utf-8')
+        tags = [t for t in tags_output.split('\n') if t]
         
-        if current != remote:
-            return {"update_available": True, "current_version": current, "remote_version": remote}
-        return {"update_available": False, "current_version": current}
+        # Filter and Sort tags
+        valid_versions = []
+        for t in tags:
+            try:
+                # Clean tag (remove 'v' prefix if present)
+                clean_tag = t.lstrip('v')
+                v = version.parse(clean_tag)
+                
+                # Filter based on channel
+                if channel == "stable":
+                    if not v.is_prerelease:
+                        valid_versions.append((v, t))
+                else:
+                    # Beta/All includes prereleases
+                    valid_versions.append((v, t))
+            except:
+                continue
+                
+        if not valid_versions:
+             return {"update_available": False, "current_version": "Unknown", "message": "No versions found"}
+             
+        # Sort by version (descending)
+        valid_versions.sort(key=lambda x: x[0], reverse=True)
+        latest_version_obj, latest_tag = valid_versions[0]
+        
+        # Get current version
+        from version import VERSION
+        current_v = version.parse(VERSION)
+        
+        if latest_version_obj > current_v:
+             return {
+                 "update_available": True, 
+                 "current_version": VERSION, 
+                 "remote_version": latest_tag,
+                 "channel": channel
+             }
+             
+        return {
+            "update_available": False, 
+            "current_version": VERSION, 
+            "remote_version": latest_tag,
+            "channel": channel
+        }
+
     except Exception as e:
         print(f"Update check failed: {e}")
         return {"update_available": False, "error": str(e)}

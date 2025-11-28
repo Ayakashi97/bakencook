@@ -2,25 +2,38 @@
 set -e
 
 # Configuration
-PROJECT_DIR="/home/baker/bakencook" # Adjust if needed, or use relative paths
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
 BACKUP_DIR="$PROJECT_DIR/backups"
 
+TARGET_VERSION="$1"
+
 echo "Starting System Update..."
+echo "Project Directory: $PROJECT_DIR"
 
 # 1. Backup Database
 echo "Creating database backup..."
-if [ -f "$PROJECT_DIR/scripts/backup_db.sh" ]; then
-    bash "$PROJECT_DIR/scripts/backup_db.sh"
+if [ -f "$SCRIPT_DIR/backup_db.sh" ]; then
+    bash "$SCRIPT_DIR/backup_db.sh"
 else
     echo "Warning: backup_db.sh not found. Skipping backup."
 fi
 
-# 2. Git Pull
-echo "Pulling latest changes..."
+# 2. Git Update
+echo "Fetching latest changes..."
 cd "$PROJECT_DIR"
-git pull
+git fetch --tags
+
+if [ -n "$TARGET_VERSION" ]; then
+    echo "Checking out version: $TARGET_VERSION"
+    git checkout "$TARGET_VERSION"
+else
+    echo "Pulling latest changes from current branch..."
+    git pull
+fi
 
 # 3. Update Backend
 echo "Updating Backend..."

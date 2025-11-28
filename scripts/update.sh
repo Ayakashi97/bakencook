@@ -46,6 +46,13 @@ fi
 # 3. Update Backend
 echo "Updating Backend..."
 cd "$BACKEND_DIR"
+
+# Activate Virtual Environment if configured
+if [ -n "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/activate" ]; then
+    echo "Activating virtual environment: $VENV_DIR"
+    source "$VENV_DIR/bin/activate"
+fi
+
 # Install python dependencies
 if [ -f "requirements.txt" ]; then
     echo "Installing Python dependencies..."
@@ -80,4 +87,17 @@ npm install
 npm run build
 
 echo "Update completed successfully."
-echo "Please restart the application services."
+
+# Restart Service if configured
+if [ -n "$BACKEND_SERVICE_NAME" ]; then
+    echo "Restarting service: $BACKEND_SERVICE_NAME..."
+    if command -v systemctl &> /dev/null; then
+        sudo systemctl restart "$BACKEND_SERVICE_NAME"
+        echo "Service restarted."
+    else
+        echo "Warning: systemctl not found. Cannot restart service automatically."
+        echo "Please restart '$BACKEND_SERVICE_NAME' manually."
+    fi
+else
+    echo "Please restart the application services."
+fi

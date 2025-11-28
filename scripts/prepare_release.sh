@@ -46,18 +46,32 @@ echo "📦 Updating frontend/package.json..."
 sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" frontend/package.json
 
 # 4. Update CHANGELOG.md (Prepend new entry)
+# 4. Update CHANGELOG.md (Prepend new entry)
 echo "📄 Updating CHANGELOG.md..."
 DATE=$(date +%Y-%m-%d)
+
+# Find the last tag
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+if [ -z "$LAST_TAG" ]; then
+    echo "No previous tag found. Getting all commits."
+    COMMITS=$(git log --pretty=format:"- %s")
+else
+    echo "Getting commits since $LAST_TAG..."
+    COMMITS=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
+fi
+
+# Filter out "chore: bump version" commits to avoid noise
+COMMITS=$(echo "$COMMITS" | grep -v "chore: bump version")
+
 # Create a temporary file with the new entry
 cat <<EOF > changelog_temp.md
 ## [$NEW_VERSION] - $DATE
-### Added
-- [TODO: Add your changes here]
+### Changes
+$COMMITS
 
 EOF
 # Insert after the header (line 2)
-# Assuming line 1 is "# Changelog" and line 2 is empty or existing content
-# We will insert after line 2 to keep the title
 sed -i '' '2r changelog_temp.md' CHANGELOG.md
 rm changelog_temp.md
 

@@ -16,6 +16,8 @@ i18n
         resources: {
             en: {
                 translation: {
+                    "approve": "Approve",
+                    "pending_approval": "Pending Approval",
                     "nav.dashboard": "Dashboard",
                     "nav.planer": "Planer",
                     "nav.logout": "Logout",
@@ -455,6 +457,8 @@ i18n
             },
             de: {
                 translation: {
+                    "approve": "Genehmigen",
+                    "pending_approval": "Genehmigung ausstehend",
                     "nav.dashboard": "Übersicht",
                     "nav.planer": "Planer",
                     "nav.logout": "Abmelden",
@@ -616,8 +620,6 @@ i18n
                         delete_error: "Löschen fehlgeschlagen",
                         approve_success: "Erfolgreich genehmigt",
                         approve_error: "Genehmigung fehlgeschlagen",
-                        approve: "Genehmigen",
-                        pending_approval: "Genehmigung ausstehend",
                         delete_user: "Benutzer löschen",
                         delete_unit: "Einheit löschen",
                         search: "Suchen...",

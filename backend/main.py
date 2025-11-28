@@ -78,6 +78,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Trust X-Forwarded-Proto headers from Nginx
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")

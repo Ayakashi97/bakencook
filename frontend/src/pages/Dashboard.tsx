@@ -29,7 +29,7 @@ export default function Dashboard() {
     const { data: recipePage, isLoading, error } = useQuery<RecipePage>({
         queryKey: ['recipes', activeTab, submittedSearch, sortBy, page, pageSize],
         queryFn: async () => {
-            const res = await api.get('/recipes/', {
+            const res = await api.get('/recipes', {
                 params: {
                     tab: activeTab,
                     search: submittedSearch,

@@ -129,16 +129,18 @@ export default function SystemStatus() {
 
     // Poll Update Status
     useQuery({
-        queryKey: ['updateStatus'],
+        queryKey: ['updateStatus', updateStatus], // Add updateStatus to key to prevent stale closures
         queryFn: async () => {
             if (!isUpdateModalOpen || updateStatus === 'completed' || updateStatus === 'failed' || isRestarting) return null;
             try {
                 const res = await api.get('/system/update-status');
 
                 // If status goes back to idle while we were running, it likely restarted
-                if (res.data.status === 'idle' && updateStatus === 'running') {
+                // We rely on 'enabled' to ensure we are running, but check explicitly too
+                if (res.data.status === 'idle') {
+                    console.log("Status is idle, assuming restart");
                     setIsRestarting(true);
-                    setUpdateStatus('completed'); // Treat as completed
+                    setUpdateStatus('completed');
                     return res.data;
                 }
 
@@ -152,11 +154,9 @@ export default function SystemStatus() {
                 return res.data;
             } catch (error) {
                 // Network error likely means backend is restarting
-                if (updateStatus === 'running') {
-                    console.log("Update status check failed, assuming restart...");
-                    setIsRestarting(true);
-                    setUpdateStatus('completed');
-                }
+                console.log("Update status check failed, assuming restart...", error);
+                setIsRestarting(true);
+                setUpdateStatus('completed');
                 return null;
             }
         },

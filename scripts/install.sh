@@ -184,7 +184,10 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        # Use upstream protocol if present (for reverse proxy), otherwise fallback to scheme would be ideal but requires map.
+        # Given the user has a reverse proxy, we MUST pass the upstream proto.
+        proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Prefix /api;
     }
     
     # Static Files (Uploads)

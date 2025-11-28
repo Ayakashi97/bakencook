@@ -23,7 +23,7 @@ DB_PASSWORD="${POSTGRES_PASSWORD:-${DB_PASSWORD:-securepassword}}"
 DB_NAME="${POSTGRES_DB:-${DB_NAME:-bakencook}}"
 DB_HOST="${POSTGRES_HOST:-${DB_HOST:-localhost}}" # Host for local pg_dump connection
 
-# Ensure backup directory exists
+# Ensure backup directory exist
 mkdir -p "$BACKUP_DIR"
 
 echo "Backing up database to $BACKUP_FILE..."

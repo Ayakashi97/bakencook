@@ -1956,37 +1956,36 @@ def test_email_config(
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "BakeAssist"
-        app_name = app_name.replace('\xa0', ' ').strip()
+        # Normalize app_name: remove nbsp, replace smart quotes
+        app_name = app_name.replace('\xa0', ' ').replace('’', "'").strip()
         
-        print(f"DEBUG: app_name raw: {repr(app_name)}")
+        print(f"DEBUG: app_name normalized: {repr(app_name)}")
         print(f"DEBUG: smtp_user raw: {repr(request.smtp_user)}")
 
         msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
         
-        body = f"Hello {current_user.username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
+        # Sanitize username
+        username = current_user.username.replace('\xa0', ' ').strip()
+        
+        body = f"Hello {username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
+        print("DEBUG: Connecting to SMTP server...")
         server = smtplib.SMTP(request.smtp_server, request.smtp_port)
         server.starttls()
         
-        # Sanitize smtp_user just in case
+        # Sanitize smtp_user and password
         smtp_user = request.smtp_user.replace('\xa0', '').strip()
-        server.login(smtp_user, request.smtp_password)
+        smtp_password = request.smtp_password.replace('\xa0', '').strip()
+        
+        print("DEBUG: Logging in...")
+        server.login(smtp_user, smtp_password)
+        print("DEBUG: Login success")
         
         # Ensure the message is converted to a string properly
         try:
             text = msg.as_string()
             print(f"DEBUG: msg.as_string() success. Len: {len(text)}")
-            # Check if text is ascii
-            try:
-                text.encode('ascii')
-                print("DEBUG: msg is pure ASCII")
-            except UnicodeEncodeError:
-                print("DEBUG: msg contains non-ASCII characters!")
-                # Fallback: try to encode to bytes directly if sendmail supports it
-                # But sendmail expects string in python 3 usually, or bytes.
-                # Let's try to fix it by forcing ascii conversion with replacement if needed, 
-                # but better to know WHY.
         except Exception as e:
             print(f"DEBUG: msg.as_string() FAILED: {e}")
             raise e

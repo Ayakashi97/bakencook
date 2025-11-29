@@ -679,16 +679,7 @@ def revoke_session(
     db.commit()
     return {"message": "Session revoked"}
 
-@app.put("/users/me/settings", response_model=schemas.User)
-def update_settings(
-    settings: schemas.UserUpdateSettings,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    current_user.session_duration_minutes = settings.session_duration_minutes
-    db.commit()
-    db.refresh(current_user)
-    return current_user
+
 
 @app.delete("/users/me")
 def delete_my_account(
@@ -1319,6 +1310,22 @@ def bulk_create_ingredients(ingredients: List[schemas.IngredientItemCreate], db:
 
 
 
+def send_verification_email(to_email: str, code: str, db: Session):
+    # Get app name
+    app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+    app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+    app_name = app_name.strip()
+    
+    subject = f"Verify your email - {app_name}"
+    body = f"""
+    <h2>Verify your email address</h2>
+    <p>You have requested to change your email address for {app_name}.</p>
+    <p>Your verification code is:</p>
+    <h1 style="font-size: 32px; letter-spacing: 5px;">{code}</h1>
+    <p>If you did not request this change, please ignore this email.</p>
+    """
+    send_mail(db, to_email, subject, body)
+
 @app.put("/users/me/settings", response_model=schemas.User)
 def update_settings(
     settings: schemas.UserUpdateSettings,
@@ -1412,12 +1419,30 @@ def confirm_email_change(
         raise HTTPException(status_code=400, detail="Code expired")
         
     # Update Email
+    old_email = current_user.email
     current_user.email = confirm.email
     
     # Cleanup
     db.delete(token)
     db.commit()
     db.refresh(current_user)
+    
+    # Notify old email
+    if old_email:
+        try:
+            app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+            app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+            app_name = app_name.strip()
+            
+            subject = f"Security Alert: Email Changed - {app_name}"
+            body = f"""
+            <h2>Your email address has been changed</h2>
+            <p>The email address for your account on {app_name} has been changed to {confirm.email}.</p>
+            <p>If you did not authorize this change, please contact the administrator immediately.</p>
+            """
+            send_mail(db, old_email, subject, body)
+        except Exception as e:
+            print(f"Failed to send notification to old email: {e}")
     
     return current_user
 

@@ -1053,17 +1053,14 @@ i18n
                     "recipe.temp_adjustment_info": "Passive Schritte werden basierend auf der Temperaturdifferenz angepasst.",
                     "recipe.reference_temp": "Referenztemperatur (°C)",
                     "planer.real_temp": "Reale Temperatur (°C)",
-                    "planer.temp_adjustment_info": "Passive Schritte werden basierend auf der Temperaturdifferenz angepasst."
-                },
-                "upload_image": "Bild hochladen",
-                "upload_url": "Bild-URL",
-                "upload_btn": "Hochladen",
-                "create_ingredient": "Zutat erstellen",
-                "create_ingredient_title": "Neue Zutat erstellen",
-                "create_ingredient_desc": "Erstellen Sie eine neue Zutat. Diese muss von einem Administrator genehmigt werden.",
-                "pending_approval": "Wartet auf Genehmigung",
-                "approve": "Genehmigen",
-                "verified": "Verifiziert"
+                    "planer.temp_adjustment_info": "Passive Schritte werden basierend auf der Temperaturdifferenz angepasst.",
+                    "upload_image": "Bild hochladen",
+                    "upload_url": "Bild-URL",
+                    "upload_btn": "Hochladen",
+                    "create_ingredient": "Zutat erstellen",
+                    "create_ingredient_title": "Neue Zutat erstellen",
+                    "create_ingredient_desc": "Erstellen Sie eine neue Zutat. Diese muss von einem Administrator genehmigt werden."
+                }
             }
         }
     });

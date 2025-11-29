@@ -44,7 +44,7 @@ export function GlobalSearch() {
         queryKey: ['global-search', query],
         queryFn: async () => {
             if (!query.trim()) return [];
-            const res = await api.get('/recipes/', {
+            const res = await api.get('/recipes', {
                 params: {
                     tab: 'search',
                     search: query

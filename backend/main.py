@@ -1328,6 +1328,22 @@ def update_settings(
     if settings.session_duration_minutes < 1 or settings.session_duration_minutes > 43200:
         raise HTTPException(status_code=400, detail="Session duration must be between 1 minute and 30 days")
         
+    # Handle Email Update
+    if settings.email and settings.email != current_user.email:
+        # Require password for email change
+        if not settings.password:
+             raise HTTPException(status_code=401, detail="Password required to change email")
+             
+        if not verify_password(settings.password, current_user.hashed_password):
+             raise HTTPException(status_code=401, detail="Incorrect password")
+             
+        # Check if email is taken
+        existing = db.query(models.User).filter(models.User.email == settings.email).first()
+        if existing:
+             raise HTTPException(status_code=400, detail="Email already registered")
+             
+        current_user.email = settings.email
+
     current_user.session_duration_minutes = settings.session_duration_minutes
     db.commit()
     db.refresh(current_user)

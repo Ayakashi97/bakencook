@@ -45,7 +45,7 @@ export default function Profile() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: (data: { session_duration_minutes: number, email?: string }) => api.put('/users/me/settings', data),
+        mutationFn: (data: { session_duration_minutes: number, email?: string, password?: string }) => api.put('/users/me/settings', data),
         onSuccess: () => {
             toast.success(t('profile.settings.saved') || 'Settings saved');
             queryClient.invalidateQueries({ queryKey: ['user'] });
@@ -80,6 +80,11 @@ export default function Profile() {
     const [revokeSessionId, setRevokeSessionId] = useState<string | null>(null);
     const [showRevokeAllModal, setShowRevokeAllModal] = useState(false);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+    const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
+
+    // Email state lifted from OverviewTab
+    const [email, setEmail] = useState(user?.email || '');
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
 
     // --- Tabs Components ---
 
@@ -132,6 +137,53 @@ export default function Profile() {
                     </div>
                 </div>
 
+                {/* Email Update Section */}
+                <div className="glass-card rounded-xl p-6">
+                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <Settings className="h-5 w-5" /> {t('profile.email') || "Email"}
+                    </h2>
+                    <div className="max-w-md space-y-4">
+                        <div className="flex gap-2">
+                            <input
+                                type="email"
+                                className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors disabled:opacity-50"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="user@example.com"
+                                disabled={!isEditingEmail}
+                            />
+                            {!isEditingEmail ? (
+                                <button
+                                    onClick={() => setIsEditingEmail(true)}
+                                    className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors"
+                                >
+                                    {t('common.edit') || "Edit"}
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setEmail(user?.email || '');
+                                            setIsEditingEmail(false);
+                                        }}
+                                        className="px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                    >
+                                        {t('common.cancel') || "Cancel"}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowEmailConfirmModal(true)}
+                                        disabled={!email || email === user?.email}
+                                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                                    >
+                                        {t('common.save') || "Save"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Password Change Section */}
                 <div className="glass-card rounded-xl p-6">
                     <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                         <KeyRound className="h-5 w-5" /> {t('profile.change_password')}
@@ -234,7 +286,6 @@ export default function Profile() {
 
     const SettingsTab = () => {
         const [duration, setDuration] = useState(user?.session_duration_minutes || 60);
-        const [email, setEmail] = useState(user?.email || '');
         const [showSettingsConfirmModal, setShowSettingsConfirmModal] = useState(false);
         const [pendingDuration, setPendingDuration] = useState(60);
 
@@ -245,106 +296,95 @@ export default function Profile() {
                         <Settings className="h-5 w-5" /> {t('profile.tabs.settings')}
                     </h2>
                     <div className="max-w-md space-y-4">
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">
-                                {t('profile.email') || "Email"}
-                            </label>
-                            <input
-                                type="email"
-                                required
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="user@example.com"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium mb-2 block">
-                                {t('profile.settings.session_duration')}
-                            </label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="112"
-                                    step="1"
-                                    value={(() => {
-                                        if (duration <= 60) return duration;
-                                        if (duration <= 1440) return 60 + Math.round((duration - 60) / 60);
-                                        return 83 + Math.round((duration - 1440) / 1440);
-                                    })()}
-                                    onChange={(e) => {
-                                        const s = parseInt(e.target.value);
-                                        let val;
-                                        if (s <= 60) val = s;
-                                        else if (s <= 83) val = 60 + (s - 60) * 60;
-                                        else val = 1440 + (s - 83) * 1440;
-                                        setDuration(val);
-                                    }}
-                                    className="flex-1"
-                                />
-                                <span className="w-24 text-right font-mono text-sm">
-                                    {(() => {
-                                        if (duration < 60) return `${duration} min`;
-                                        if (duration < 1440) {
-                                            const h = Math.floor(duration / 60);
-                                            const m = duration % 60;
-                                            return m > 0 ? `${h}h ${m}m` : `${h}h`;
-                                        }
-                                        const d = Math.floor(duration / 1440);
-                                        const h = Math.floor((duration % 1440) / 60);
-                                        return h > 0 ? `${d}d ${h}h` : `${d}d`;
-                                    })()}
-                                </span>
-                            </div>
-                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                <span>1 min</span>
-                                <span>30 days</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => {
-                                setPendingDuration(duration);
-                                setShowSettingsConfirmModal(true);
-                            }}
-                            disabled={updateSettingsMutation.isPending}
-                            className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                        >
-                            {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                            {t('profile.settings.update')}
-                        </button>
                     </div>
+
+                    <div>
+                        <label className="text-sm font-medium mb-2 block">
+                            {t('profile.settings.session_duration')}
+                        </label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="range"
+                                min="1"
+                                max="112"
+                                step="1"
+                                value={(() => {
+                                    if (duration <= 60) return duration;
+                                    if (duration <= 1440) return 60 + Math.round((duration - 60) / 60);
+                                    return 83 + Math.round((duration - 1440) / 1440);
+                                })()}
+                                onChange={(e) => {
+                                    const s = parseInt(e.target.value);
+                                    let val;
+                                    if (s <= 60) val = s;
+                                    else if (s <= 83) val = 60 + (s - 60) * 60;
+                                    else val = 1440 + (s - 83) * 1440;
+                                    setDuration(val);
+                                }}
+                                className="flex-1"
+                            />
+                            <span className="w-24 text-right font-mono text-sm">
+                                {(() => {
+                                    if (duration < 60) return `${duration} min`;
+                                    if (duration < 1440) {
+                                        const h = Math.floor(duration / 60);
+                                        const m = duration % 60;
+                                        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                                    }
+                                    const d = Math.floor(duration / 1440);
+                                    const h = Math.floor((duration % 1440) / 60);
+                                    return h > 0 ? `${d}d ${h}h` : `${d}d`;
+                                })()}
+                            </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>1 min</span>
+                            <span>30 days</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setPendingDuration(duration);
+                            setShowSettingsConfirmModal(true);
+                        }}
+                        disabled={updateSettingsMutation.isPending}
+                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                    >
+                        {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {t('profile.settings.update')}
+                    </button>
                 </div>
 
-                {showSettingsConfirmModal && (
-                    <Modal title={t('profile.settings.confirm_title') || "Confirm Settings Update"} onClose={() => setShowSettingsConfirmModal(false)}>
-                        <p className="mb-6 text-muted-foreground">
-                            {t('profile.settings.confirm_desc') || "Are you sure you want to update your session duration? This will apply to new sessions."}
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setShowSettingsConfirmModal(false)}
-                                className="px-4 py-2 rounded-md hover:bg-muted"
-                            >
-                                {t('profile.modal.cancel')}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    updateSettingsMutation.mutate({
-                                        session_duration_minutes: pendingDuration,
-                                        email: email !== user?.email ? email : undefined
-                                    });
-                                    setShowSettingsConfirmModal(false);
-                                }}
-                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-                            >
-                                {t('profile.modal.confirm')}
-                            </button>
-                        </div>
-                    </Modal>
-                )}
-            </div>
+
+                {
+                    showSettingsConfirmModal && (
+                        <Modal title={t('profile.settings.confirm_title') || "Confirm Settings Update"} onClose={() => setShowSettingsConfirmModal(false)}>
+                            <p className="mb-6 text-muted-foreground">
+                                {t('profile.settings.confirm_desc') || "Are you sure you want to update your session duration? This will apply to new sessions."}
+                            </p>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => setShowSettingsConfirmModal(false)}
+                                    className="px-4 py-2 rounded-md hover:bg-muted"
+                                >
+                                    {t('profile.modal.cancel')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        updateSettingsMutation.mutate({
+                                            session_duration_minutes: pendingDuration
+                                        });
+                                        setShowSettingsConfirmModal(false);
+                                    }}
+                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+                                >
+                                    {t('profile.modal.confirm')}
+                                </button>
+                            </div>
+                        </Modal>
+                    )
+                }
+            </div >
         );
     };
 
@@ -616,8 +656,54 @@ export default function Profile() {
                         </div>
                     </form>
                 </Modal>
-            )
-            }
+            )}
+
+            {showEmailConfirmModal && (
+                <Modal title={t('profile.email_confirm_title') || "Confirm Email Change"} onClose={() => setShowEmailConfirmModal(false)}>
+                    <p className="mb-4 text-muted-foreground">
+                        {t('profile.email_confirm_desc') || "Please enter your password to confirm the email change."}
+                    </p>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        updateSettingsMutation.mutate({
+                            session_duration_minutes: user?.session_duration_minutes || 60,
+                            email: email,
+                            password: formData.get('password') as string
+                        }, {
+                            onSuccess: () => {
+                                setShowEmailConfirmModal(false);
+                                setIsEditingEmail(false);
+                            }
+                        });
+                    }}>
+                        <input
+                            name="password"
+                            type="password"
+                            required
+                            placeholder={t('common.password') || "Password"}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowEmailConfirmModal(false)}
+                                className="px-4 py-2 rounded-md hover:bg-muted"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={updateSettingsMutation.isPending}
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
+                            >
+                                {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                                {t('common.confirm') || "Confirm"}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
         </div >
     );
 }

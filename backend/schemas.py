@@ -93,6 +93,7 @@ class User(UserBase):
 class UserUpdateSettings(BaseModel):
     session_duration_minutes: int
     email: Optional[EmailStr] = None
+    password: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str

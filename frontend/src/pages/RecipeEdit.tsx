@@ -92,15 +92,13 @@ export default function RecipeEdit() {
                 const [ingRes, unitRes, recipeRes] = await Promise.all([
                     api.get('/admin/ingredients'),
                     api.get('/admin/units'),
-                    api.get('/recipes')
+                    api.get('/recipes?limit=1000')
                 ]);
                 setAvailableIngredients(ingRes.data);
                 setAvailableUnits(unitRes.data);
-                if (Array.isArray(recipeRes.data)) {
-                    setAvailableRecipes(recipeRes.data.filter((r: any) => r.id !== id));
-                } else {
-                    setAvailableRecipes([]);
-                }
+                // Handle paginated response for recipes
+                const recipes = recipeRes.data.items ? recipeRes.data.items : (Array.isArray(recipeRes.data) ? recipeRes.data : []);
+                setAvailableRecipes(recipes.filter((r: any) => r.id !== id));
             } catch (error) {
                 console.error('Failed to load form data', error);
             }
@@ -821,6 +819,25 @@ export default function RecipeEdit() {
                                                                         >
                                                                             <span>{getLocalizedName(ai.name, 1)}</span>
                                                                             {ing.name.en === getLocalizedName(ai.name, 1) && <Check className="h-4 w-4" />}
+                                                                        </button>
+                                                                    ))}
+
+                                                                {/* Recipes Section */}
+                                                                {availableRecipes.length > 0 && <div className="px-2 py-1 text-xs font-semibold text-muted-foreground border-t mt-1">{t('dashboard.recipes') || "Recipes"}</div>}
+                                                                {availableRecipes
+                                                                    .filter(r => r.title.toLowerCase().includes(comboboxSearch.toLowerCase()))
+                                                                    .map(r => (
+                                                                        <button
+                                                                            key={`recipe-${r.id}`}
+                                                                            type="button"
+                                                                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between"
+                                                                            onClick={() => handleIngredientSelect(chapterIdx, ingIdx, `recipe:${r.id}`)}
+                                                                        >
+                                                                            <span className="flex items-center gap-2">
+                                                                                <ChefHat className="w-3 h-3 text-muted-foreground" />
+                                                                                {r.title}
+                                                                            </span>
+                                                                            {ing.linked_recipe_id === r.id && <Check className="h-4 w-4" />}
                                                                         </button>
                                                                     ))}
                                                                 {comboboxSearch && !availableIngredients.some(ai => getLocalizedName(ai.name, 1).toLowerCase() === comboboxSearch.toLowerCase()) && (

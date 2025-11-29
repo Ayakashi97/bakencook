@@ -385,6 +385,7 @@ i18n
                     "upload_url": "Image URL",
                     "upload_btn": "Upload",
                     "create_ingredient": "Create Ingredient",
+                    "create_ingredient_title": "Create New Ingredient",
                     "create_ingredient_desc": "Create a new ingredient. This will require approval by an administrator.",
 
                     "search.placeholder": "Search recipes...",
@@ -1058,6 +1059,7 @@ i18n
                 "upload_url": "Bild-URL",
                 "upload_btn": "Hochladen",
                 "create_ingredient": "Zutat erstellen",
+                "create_ingredient_title": "Neue Zutat erstellen",
                 "create_ingredient_desc": "Erstellen Sie eine neue Zutat. Diese muss von einem Administrator genehmigt werden.",
                 "pending_approval": "Wartet auf Genehmigung",
                 "approve": "Genehmigen",

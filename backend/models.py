@@ -170,8 +170,10 @@ class Ingredient(Base):
     unit = Column(String, default="g")
     temperature = Column(Float, nullable=True)
     type = Column(Enum(IngredientType), default=IngredientType.other)
+    linked_recipe_id = Column(GUID, ForeignKey("recipes.id"), nullable=True)
 
     chapter = relationship("Chapter", back_populates="ingredients")
+    linked_recipe = relationship("Recipe", foreign_keys=[linked_recipe_id])
 
 class Step(Base):
     __tablename__ = "steps"

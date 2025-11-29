@@ -1322,7 +1322,6 @@ async def create_ingredient(
     new_ing = models.IngredientItem(
         name=name_dict, 
         default_unit_id=ingredient.default_unit_id, 
-        linked_recipe_id=ingredient.linked_recipe_id,
         is_verified=is_verified
     )
     db.add(new_ing)
@@ -1358,7 +1357,6 @@ async def update_ingredient(
     
     ing.name = ingredient_update.name
     ing.default_unit_id = ingredient_update.default_unit_id
-    ing.linked_recipe_id = ingredient_update.linked_recipe_id
     
     db.commit()
     db.refresh(ing)
@@ -1404,7 +1402,7 @@ def bulk_create_units(units: List[schemas.UnitCreate], db: Session = Depends(get
 def bulk_create_ingredients(ingredients: List[schemas.IngredientItemCreate], db: Session = Depends(get_db), current_user: models.User = Depends(has_permission("manage:ingredients"))):
     created_ingredients = []
     for ing in ingredients:
-        new_ing = models.IngredientItem(name=ing.name, default_unit_id=ing.default_unit_id, linked_recipe_id=ing.linked_recipe_id)
+        new_ing = models.IngredientItem(name=ing.name, default_unit_id=ing.default_unit_id)
         db.add(new_ing)
         created_ingredients.append(new_ing)
     

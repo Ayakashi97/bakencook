@@ -503,6 +503,7 @@ export default function Profile() {
         });
 
         const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+        const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
         const generateKeyMutation = useMutation({
             mutationFn: async () => {
@@ -576,9 +577,7 @@ export default function Profile() {
                                 <button
                                     onClick={() => {
                                         if (apiStatus?.has_api_key) {
-                                            if (confirm("Regenerating will invalidate your existing API Key immediately. Continue?")) {
-                                                generateKeyMutation.mutate();
-                                            }
+                                            setShowRegenerateConfirm(true);
                                         } else {
                                             generateKeyMutation.mutate();
                                         }
@@ -593,6 +592,31 @@ export default function Profile() {
                         </div>
                     )}
                 </div>
+
+                {showRegenerateConfirm && (
+                    <Modal title={t('profile.api.regenerate_confirm_title')} onClose={() => setShowRegenerateConfirm(false)}>
+                        <p className="mb-6 text-muted-foreground">
+                            {t('profile.api.regenerate_confirm_desc')}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowRegenerateConfirm(false)}
+                                className="px-4 py-2 rounded-md hover:bg-muted"
+                            >
+                                {t('profile.modal.cancel')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    generateKeyMutation.mutate();
+                                    setShowRegenerateConfirm(false);
+                                }}
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+                            >
+                                {t('profile.modal.confirm')}
+                            </button>
+                        </div>
+                    </Modal>
+                )}
             </div>
         );
     };

@@ -1,18 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api, RecipeCreate, Ingredient, Step } from '../lib/api';
-import { Loader2, Plus, Trash2, Wand2, Save, Search, Check, Image as ImageIcon, ChefHat, Utensils } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { NumberInput } from '../components/ui/NumberInput';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Modal } from '../components/Modal';
+import { Loader2, Plus, Trash2, Save, Wand2, Check, Image as ImageIcon, ChefHat, Utensils, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IngredientFormModal } from '../components/IngredientFormModal';
 import { ImageUploadModal } from '../components/ImageUploadModal';
 import { ImportProgressModal } from '../components/ImportProgressModal';
-import { Button } from '../components/ui/Button';
-import { NumberInput } from '../components/ui/NumberInput';
-import { PageHeader } from '../components/ui/PageHeader';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { useKeyboardSave } from '../hooks/useKeyboardSave';
 
 export default function RecipeEdit() {
@@ -59,6 +60,12 @@ export default function RecipeEdit() {
     const [importStatus, setImportStatus] = useState<'idle' | 'scraping' | 'analyzing' | 'completed' | 'error'>('idle');
     const [importError, setImportError] = useState<string | undefined>(undefined);
     const [reviewMode, setReviewMode] = useState(false);
+
+    // Duplicate handling
+    const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+    const [duplicateRecipeId, setDuplicateRecipeId] = useState<string | null>(null);
+    const [redirectCountdown, setRedirectCountdown] = useState(5);
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const [availableIngredients, setAvailableIngredients] = useState<any[]>([]);
     const [availableUnits, setAvailableUnits] = useState<any[]>([]);
@@ -192,6 +199,36 @@ export default function RecipeEdit() {
             }, 1000);
         },
         onError: (error: any) => {
+            if (error.response?.status === 409) {
+                try {
+                    const detail = JSON.parse(error.response.data.detail);
+                    const recipeId = detail.recipe_id;
+
+                    setImportStatus('idle'); // Reset status so we don't show error state in UI
+                    setDuplicateRecipeId(recipeId);
+                    setRedirectCountdown(5);
+                    setDuplicateModalOpen(true);
+
+                    // Clear any existing interval
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+                    countdownIntervalRef.current = setInterval(() => {
+                        setRedirectCountdown((prev) => {
+                            if (prev <= 1) {
+                                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                                navigate(`/recipe/${recipeId}`);
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse duplicate error", e);
+                }
+            }
+
             setImportStatus('error');
             setImportError(error.message || 'Import failed');
             // setIsImporting(false); // Keep open to show error
@@ -858,6 +895,39 @@ export default function RecipeEdit() {
                 status={importStatus}
                 error={importError}
             />
+            {/* Duplicate Modal */}
+            {duplicateModalOpen && (
+                <Modal title={t('edit.duplicate_title')} onClose={() => {
+                    setDuplicateModalOpen(false);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                }}>
+                    <div className="space-y-6">
+                        <p className="text-muted-foreground">
+                            {t('edit.duplicate_msg', { seconds: redirectCountdown })}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setDuplicateModalOpen(false);
+                                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                                }}
+                            >
+                                {t('edit.stay')}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (duplicateRecipeId) {
+                                        navigate(`/recipe/${duplicateRecipeId}`);
+                                    }
+                                }}
+                            >
+                                {t('edit.go_now')}
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div >
     );
 }

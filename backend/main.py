@@ -2201,6 +2201,12 @@ async def import_from_url(
         # 1. Scrape
         text_content = ""
         if request.url:
+            # Check for existing recipe
+            existing = db.query(models.Recipe).filter(models.Recipe.source_url == request.url, models.Recipe.user_id == current_user.id).first()
+            if existing:
+                import json
+                raise HTTPException(status_code=409, detail=json.dumps({"message": "Recipe exists", "recipe_id": str(existing.id)}))
+            
             text_content = await scrape_url(request.url)
         elif request.raw_text:
             text_content = request.raw_text
@@ -2217,6 +2223,8 @@ async def import_from_url(
         recipe_data = await parse_recipe_from_text(text_content, source_url=request.url, language=request.language, api_key=api_key)
         
         return recipe_data
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -29,7 +29,7 @@ export default function AdminSystem() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
-                                    "group flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-all",
+                                    "group flex items-center justify-start text-left w-full px-3 py-2 text-sm font-medium rounded-md transition-all",
                                     activeTab === tab.id
                                         ? "bg-primary/10 text-primary shadow-sm"
                                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
@@ -533,15 +533,15 @@ function LogViewerModal({ onClose }: { onClose: () => void }) {
 
     return (
         <Modal title={t('admin.system_logs', 'System Logs')} onClose={onClose}>
-            <div className="space-y-4 w-[800px] max-w-[90vw]">
-                <div className="bg-black/90 text-green-400 font-mono text-xs p-4 rounded-lg h-[500px] overflow-y-auto whitespace-pre-wrap">
+            <div className="space-y-4 w-[1000px] max-w-[95vw]">
+                <div className="bg-black/90 text-green-400 font-mono text-xs p-4 rounded-lg h-[600px] overflow-y-auto whitespace-pre-wrap break-all">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <RefreshCw className="h-6 w-6 animate-spin text-white" />
                         </div>
                     ) : (
                         data?.logs?.map((line: string, i: number) => (
-                            <div key={i}>{line}</div>
+                            <div key={i} className="break-words">{line}</div>
                         )) || <div className="text-gray-500 italic">No logs found</div>
                     )}
                 </div>

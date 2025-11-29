@@ -46,12 +46,34 @@ export default function Profile() {
 
     const updateSettingsMutation = useMutation({
         mutationFn: (data: { session_duration_minutes: number, email?: string, password?: string }) => api.put('/users/me/settings', data),
-        onSuccess: () => {
-            toast.success(t('profile.settings.saved') || 'Settings saved');
-            queryClient.invalidateQueries({ queryKey: ['user'] });
+        onSuccess: (data) => {
+            if (data.data.verification_pending) {
+                // Email verification required
+                setShowVerificationModal(true);
+                toast.info(t('auth.enter_code_desc') || 'Please enter the verification code sent to your email.');
+            } else {
+                toast.success(t('profile.settings.saved') || 'Settings saved');
+                queryClient.invalidateQueries({ queryKey: ['user'] });
+                setIsEditingEmail(false);
+                setShowEmailConfirmModal(false);
+            }
         },
         onError: (err: any) => {
             toast.error(err.response?.data?.detail || 'Failed to update settings');
+        }
+    });
+
+    const confirmEmailChangeMutation = useMutation({
+        mutationFn: (data: { code: string, email: string }) => api.post('/users/me/email/confirm', data),
+        onSuccess: () => {
+            toast.success(t('auth.verification_success') || 'Email verified successfully!');
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+            setShowVerificationModal(false);
+            setIsEditingEmail(false);
+            setShowEmailConfirmModal(false);
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.detail || 'Verification failed');
         }
     });
 
@@ -78,9 +100,11 @@ export default function Profile() {
 
     // --- Modals State ---
     const [revokeSessionId, setRevokeSessionId] = useState<string | null>(null);
+
     const [showRevokeAllModal, setShowRevokeAllModal] = useState(false);
     const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
     const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
+    const [showVerificationModal, setShowVerificationModal] = useState(false);
 
     // Email state lifted from OverviewTab
     const [email, setEmail] = useState(user?.email || '');
@@ -671,9 +695,16 @@ export default function Profile() {
                             email: email,
                             password: formData.get('password') as string
                         }, {
-                            onSuccess: () => {
-                                setShowEmailConfirmModal(false);
-                                setIsEditingEmail(false);
+                            onSuccess: (data) => {
+                                // If verification pending, keep modal open or switch to verification modal?
+                                // The mutation onSuccess handles opening verification modal.
+                                // But we need to close this one ONLY if NO verification pending.
+                                if (!data.data.verification_pending) {
+                                    setShowEmailConfirmModal(false);
+                                    setIsEditingEmail(false);
+                                } else {
+                                    setShowEmailConfirmModal(false); // Close password modal, open verification modal
+                                }
                             }
                         });
                     }}>
@@ -699,6 +730,48 @@ export default function Profile() {
                             >
                                 {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                                 {t('common.confirm') || "Confirm"}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
+
+            {showVerificationModal && (
+                <Modal title={t('auth.verify_email') || "Verify Email"} onClose={() => setShowVerificationModal(false)}>
+                    <p className="mb-4 text-muted-foreground">
+                        {t('auth.enter_code_desc') || "Please enter the 6-digit code sent to your new email address."}
+                    </p>
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        confirmEmailChangeMutation.mutate({
+                            code: formData.get('code') as string,
+                            email: email
+                        });
+                    }}>
+                        <input
+                            name="code"
+                            type="text"
+                            required
+                            placeholder="123456"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6 font-mono text-center tracking-widest text-lg"
+                            maxLength={6}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowVerificationModal(false)}
+                                className="px-4 py-2 rounded-md hover:bg-muted"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={confirmEmailChangeMutation.isPending}
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
+                            >
+                                {confirmEmailChangeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                                {t('auth.verify_btn') || "Verify"}
                             </button>
                         </div>
                     </form>

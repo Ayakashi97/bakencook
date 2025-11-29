@@ -82,6 +82,7 @@ class User(UserBase):
     role: str
     is_active: bool
     is_verified: bool = False
+    verification_pending: Optional[bool] = False
     role_id: Optional[str] = None
     role_rel: Optional[Role] = None
     session_duration_minutes: int = 60
@@ -97,6 +98,10 @@ class UserUpdateSettings(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     token: str
+
+class EmailChangeConfirm(BaseModel):
+    code: str
+    email: EmailStr
 
 class UserAdminCreate(BaseModel):
     username: str

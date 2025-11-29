@@ -39,3 +39,4 @@ instance/
 
 # OS generated files
 Thumbs.db
+backups/*

@@ -7,8 +7,11 @@ set -e
 if [ -z "$1" ]; then
     echo "🔍 No version argument provided. Starting interactive mode..."
     
-    # Get latest tag
-    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+    # Get latest tag (globally, not just reachable)
+    LAST_TAG=$(git tag --sort=-v:refname | head -n 1)
+    if [ -z "$LAST_TAG" ]; then
+        LAST_TAG="0.0.0"
+    fi
     # Remove 'v' prefix if present
     VERSION_CLEAN=${LAST_TAG#v}
     

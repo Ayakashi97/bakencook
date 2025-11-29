@@ -6,11 +6,13 @@ import { useAuth } from '../context/AuthContext';
 
 import {
     Loader2, Download, Trash2, LogOut, KeyRound, AlertTriangle,
-    Smartphone, Monitor, Globe, Clock, Settings, ShieldAlert, User, List, Copy, RefreshCw
+    Smartphone, Monitor, Globe, Clock, Settings, ShieldAlert, User, List, Copy, RefreshCw,
+    CheckCircle, BarChart3, Utensils, Sun, Moon, Laptop
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { GlassTabs } from '../components/ui/GlassTabs';
+import { useTheme } from '../components/ThemeProvider';
 
 interface UserSession {
     id: string;
@@ -28,7 +30,8 @@ const OverviewTab = ({
     isEditingEmail,
     setIsEditingEmail,
     setShowEmailConfirmModal,
-    changePasswordMutation
+    changePasswordMutation,
+    updateSettingsMutation
 }: {
     user: any;
     email: string;
@@ -37,10 +40,26 @@ const OverviewTab = ({
     setIsEditingEmail: (v: boolean) => void;
     setShowEmailConfirmModal: (v: boolean) => void;
     changePasswordMutation: any;
+    updateSettingsMutation: any;
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const { theme, setTheme } = useTheme();
     const [passwords, setPasswords] = useState({ old: '', new: '' });
     const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    // Session Duration State
+    const [duration, setDuration] = useState(user?.session_duration_minutes || 60);
+
+    // Fetch recipe count for stats
+    const { data: recipeData } = useQuery({
+        queryKey: ['user-stats-recipes'],
+        queryFn: async () => {
+            const res = await api.get('/recipes', { params: { tab: 'my_recipes', limit: 1 } });
+            return res.data;
+        }
+    });
+
+    const recipeCount = recipeData?.total || 0;
 
     const handlePasswordChange = () => {
         changePasswordMutation.mutate({ old_password: passwords.old, new_password: passwords.new }, {
@@ -69,120 +88,283 @@ const OverviewTab = ({
         }
     };
 
+    const handleLanguageChange = (lang: string) => {
+        i18n.changeLanguage(lang);
+        updateSettingsMutation.mutate({ language: lang });
+    };
+
+
+
     return (
-        <div className="space-y-6">
-            <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5" /> {t('profile.user_info')}
-                </h2>
-                <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
-                        {user?.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <p className="font-medium text-lg">{user?.username}</p>
-                        <p className="text-muted-foreground">{user?.email}</p>
-                        <p className="text-muted-foreground capitalize">{user?.role}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Column */}
+            <div className="md:col-span-2 space-y-6">
+                {/* Main Profile Card */}
+                <div className="glass-card rounded-xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
+
+                    <div className="relative flex flex-col sm:flex-row gap-6 items-start mt-4">
+                        <div className="w-24 h-24 rounded-full bg-background border-4 border-background/50 shadow-xl flex items-center justify-center text-primary text-4xl font-bold shrink-0">
+                            {user?.username.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div className="flex-1 w-full space-y-4">
+                            <div>
+                                <h2 className="text-2xl font-bold">{user?.username}</h2>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
+                                        {user?.role}
+                                    </span>
+                                    {user?.is_active && (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                                            <CheckCircle className="w-3 h-3" /> Active
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10 w-full">
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+                                    {t('profile.email') || "Email Address"}
+                                </label>
+                                <div className="flex gap-2 max-w-md">
+                                    <input
+                                        type="email"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors disabled:opacity-50"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="user@example.com"
+                                        disabled={!isEditingEmail}
+                                    />
+                                    {!isEditingEmail ? (
+                                        <button
+                                            onClick={() => setIsEditingEmail(true)}
+                                            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors shadow-sm"
+                                        >
+                                            {t('common.edit') || "Edit"}
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEmail(user?.email || '');
+                                                    setIsEditingEmail(false);
+                                                }}
+                                                className="px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                            >
+                                                {t('common.cancel') || "Cancel"}
+                                            </button>
+                                            <button
+                                                onClick={() => setShowEmailConfirmModal(true)}
+                                                disabled={!email || email === user?.email}
+                                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm"
+                                            >
+                                                {t('common.save') || "Save"}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Email Update Section */}
-            <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Settings className="h-5 w-5" /> {t('profile.email') || "Email"}
-                </h2>
-                <div className="max-w-md space-y-4">
-                    <div className="flex gap-2">
-                        <input
-                            type="email"
-                            className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors disabled:opacity-50"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="user@example.com"
-                            disabled={!isEditingEmail}
-                        />
-                        {!isEditingEmail ? (
-                            <button
-                                onClick={() => setIsEditingEmail(true)}
-                                className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors"
-                            >
-                                {t('common.edit') || "Edit"}
-                            </button>
-                        ) : (
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        setEmail(user?.email || '');
-                                        setIsEditingEmail(false);
+                {/* Application Settings Card */}
+                <div className="glass-card rounded-xl p-6">
+                    <h3 className="font-semibold flex items-center gap-2 mb-6">
+                        <Settings className="w-5 h-5" /> Application Settings
+                    </h3>
+
+                    <div className="space-y-6">
+                        {/* Language & Theme Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-sm font-medium mb-2 block text-muted-foreground">Language</label>
+                                <div className="flex p-1 bg-muted/50 rounded-lg border border-white/5">
+                                    {['en', 'de'].map((lang) => (
+                                        <button
+                                            key={lang}
+                                            onClick={() => handleLanguageChange(lang)}
+                                            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${i18n.language === lang
+                                                ? 'bg-background shadow-sm text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                                }`}
+                                        >
+                                            {lang === 'en' ? 'English' : 'Deutsch'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium mb-2 block text-muted-foreground">Theme</label>
+                                <div className="flex p-1 bg-muted/50 rounded-lg border border-white/5">
+                                    {[
+                                        { id: 'light', icon: Sun, label: 'Light' },
+                                        { id: 'dark', icon: Moon, label: 'Dark' },
+                                        { id: 'system', icon: Laptop, label: 'System' }
+                                    ].map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setTheme(item.id as any)}
+                                            className={`flex-1 py-1.5 flex items-center justify-center gap-2 text-sm font-medium rounded-md transition-all ${theme === item.id
+                                                ? 'bg-background shadow-sm text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                                }`}
+                                            title={item.label}
+                                        >
+                                            <item.icon className="w-4 h-4" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Session Duration */}
+                        <div className="pt-6 border-t border-white/10">
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-sm font-medium">Session Duration</label>
+                                <span className="text-xs font-mono bg-muted/50 px-2 py-1 rounded">
+                                    {(() => {
+                                        if (duration < 60) return `${duration} min`;
+                                        if (duration < 1440) {
+                                            const h = Math.floor(duration / 60);
+                                            const m = duration % 60;
+                                            return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                                        }
+                                        const d = Math.floor(duration / 1440);
+                                        const h = Math.floor((duration % 1440) / 60);
+                                        return h > 0 ? `${d}d ${h}h` : `${d}d`;
+                                    })()}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="112"
+                                    step="1"
+                                    value={(() => {
+                                        if (duration <= 60) return duration;
+                                        if (duration <= 1440) return 60 + Math.round((duration - 60) / 60);
+                                        return 83 + Math.round((duration - 1440) / 1440);
+                                    })()}
+                                    onChange={(e) => {
+                                        const s = parseInt(e.target.value);
+                                        let val;
+                                        if (s <= 60) val = s;
+                                        else if (s <= 83) val = 60 + (s - 60) * 60;
+                                        else val = 1440 + (s - 83) * 1440;
+                                        setDuration(val);
                                     }}
-                                    className="px-3 py-2 rounded-md hover:bg-muted transition-colors"
-                                >
-                                    {t('common.cancel') || "Cancel"}
-                                </button>
+                                    className="flex-1"
+                                />
                                 <button
-                                    onClick={() => setShowEmailConfirmModal(true)}
-                                    disabled={!email || email === user?.email}
-                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                                    onClick={() => updateSettingsMutation.mutate({ session_duration_minutes: duration })}
+                                    disabled={updateSettingsMutation.isPending || duration === user?.session_duration_minutes}
+                                    className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-50 text-xs font-medium transition-colors"
                                 >
-                                    {t('common.save') || "Save"}
+                                    {updateSettingsMutation.isPending ? 'Saving...' : 'Save'}
                                 </button>
                             </div>
-                        )}
+                            <div className="flex justify-between text-[10px] text-muted-foreground mt-1 px-1">
+                                <span>1 min</span>
+                                <span>30 days</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Password Change Section */}
-            <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <KeyRound className="h-5 w-5" /> {t('profile.change_password')}
-                </h2>
-                <form
-                    onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
-                    className="space-y-4 max-w-md"
-                >
-                    <input type="text" autoComplete="username" className="hidden" />
-                    <input
-                        type="password"
-                        autoComplete="current-password"
-                        placeholder={t('profile.old_password')}
-                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors"
-                        value={passwords.old}
-                        onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
-                    />
-                    <input
-                        type="password"
-                        autoComplete="new-password"
-                        placeholder={t('profile.new_password')}
-                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors"
-                        value={passwords.new}
-                        onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                    />
-                    {msg && (
-                        <div className={`text-sm ${msg.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                            {msg.text}
-                        </div>
-                    )}
-                    <button
-                        type="submit"
-                        disabled={changePasswordMutation.isPending || !passwords.old || !passwords.new}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                    >
-                        {changePasswordMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                        {t('profile.update_password_btn')}
-                    </button>
-                </form>
-            </div>
+            {/* Right Column */}
+            <div className="space-y-6">
+                {/* Stats Card */}
+                <div className="glass-card rounded-xl p-6 flex flex-col justify-center space-y-6">
+                    <h3 className="font-semibold flex items-center gap-2 text-muted-foreground">
+                        <BarChart3 className="w-4 h-4" /> Statistics
+                    </h3>
 
-            <div className="glass-card rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <Download className="h-5 w-5" /> {t('profile.export_data')}
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">{t('profile.export_desc')}</p>
-                <button onClick={handleExport} className="border px-4 py-2 rounded-md hover:bg-accent/50 flex items-center gap-2 bg-background/30 transition-colors">
-                    <Download className="h-4 w-4" /> {t('profile.export_btn')}
-                </button>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <div className="p-2 rounded-full bg-orange-500/10 text-orange-500">
+                                <Utensils className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold">{recipeCount}</p>
+                                <p className="text-xs text-muted-foreground">Recipes Created</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                            <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
+                                <Globe className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-lg font-medium uppercase">{user?.language || 'EN'}</p>
+                                <p className="text-xs text-muted-foreground">Language</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Password Change Section */}
+                <div className="glass-card rounded-xl p-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <KeyRound className="h-4 w-4" /> {t('profile.change_password')}
+                    </h2>
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
+                        className="space-y-3"
+                    >
+                        <input type="text" autoComplete="username" className="hidden" />
+                        <input
+                            type="password"
+                            autoComplete="current-password"
+                            placeholder={t('profile.old_password')}
+                            className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors"
+                            value={passwords.old}
+                            onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
+                        />
+                        <input
+                            type="password"
+                            autoComplete="new-password"
+                            placeholder={t('profile.new_password')}
+                            className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors"
+                            value={passwords.new}
+                            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                        />
+                        {msg && (
+                            <div className={`text-xs ${msg.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                                {msg.text}
+                            </div>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={changePasswordMutation.isPending || !passwords.old || !passwords.new}
+                            className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm text-sm"
+                        >
+                            {changePasswordMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {t('profile.update_password_btn')}
+                        </button>
+                    </form>
+                </div>
+
+                {/* Data Export Section */}
+                <div className="glass-card rounded-xl p-6 flex flex-col">
+                    <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                        <Download className="h-4 w-4" /> {t('profile.export_data')}
+                    </h2>
+                    <p className="text-xs text-muted-foreground mb-4 flex-1">
+                        {t('profile.export_desc')}
+                    </p>
+                    <button
+                        onClick={handleExport}
+                        className="w-full border px-4 py-2 rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 bg-background/30 transition-colors text-sm"
+                    >
+                        <Download className="h-3 w-3" /> {t('profile.export_btn')}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -193,7 +375,7 @@ export default function Profile() {
 
     const { t } = useTranslation();
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'settings' | 'danger' | 'api'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'sessions' | 'danger' | 'api'>('overview');
 
     // --- Queries ---
     const { data: sessions, isLoading: isLoadingSessions } = useQuery({
@@ -279,119 +461,7 @@ export default function Profile() {
 
     // OverviewTab extracted to outer component
 
-    const SettingsTab = ({
-        user,
-        updateSettingsMutation
-    }: {
-        user: any;
-        updateSettingsMutation: any;
-    }) => {
-        const { t } = useTranslation();
-        const [duration, setDuration] = useState(user?.session_duration_minutes || 60);
-        const [showSettingsConfirmModal, setShowSettingsConfirmModal] = useState(false);
-        const [pendingDuration, setPendingDuration] = useState(60);
 
-        return (
-            <div className="space-y-6">
-                <div className="glass-card rounded-xl p-6">
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <Settings className="h-5 w-5" /> {t('profile.tabs.settings')}
-                    </h2>
-                    <div className="max-w-md space-y-4">
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium mb-2 block">
-                            {t('profile.settings.session_duration')}
-                        </label>
-                        <div className="flex items-center gap-4">
-                            <input
-                                type="range"
-                                min="1"
-                                max="112"
-                                step="1"
-                                value={(() => {
-                                    if (duration <= 60) return duration;
-                                    if (duration <= 1440) return 60 + Math.round((duration - 60) / 60);
-                                    return 83 + Math.round((duration - 1440) / 1440);
-                                })()}
-                                onChange={(e) => {
-                                    const s = parseInt(e.target.value);
-                                    let val;
-                                    if (s <= 60) val = s;
-                                    else if (s <= 83) val = 60 + (s - 60) * 60;
-                                    else val = 1440 + (s - 83) * 1440;
-                                    setDuration(val);
-                                }}
-                                className="flex-1"
-                            />
-                            <span className="w-24 text-right font-mono text-sm">
-                                {(() => {
-                                    if (duration < 60) return `${duration} min`;
-                                    if (duration < 1440) {
-                                        const h = Math.floor(duration / 60);
-                                        const m = duration % 60;
-                                        return m > 0 ? `${h}h ${m}m` : `${h}h`;
-                                    }
-                                    const d = Math.floor(duration / 1440);
-                                    const h = Math.floor((duration % 1440) / 60);
-                                    return h > 0 ? `${d}d ${h}h` : `${d}d`;
-                                })()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>1 min</span>
-                            <span>30 days</span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => {
-                            setPendingDuration(duration);
-                            setShowSettingsConfirmModal(true);
-                        }}
-                        disabled={updateSettingsMutation.isPending}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                    >
-                        {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                        {t('profile.settings.update')}
-                    </button>
-                </div>
-
-
-                {
-                    showSettingsConfirmModal && (
-                        <Modal title={t('profile.settings.confirm_title') || "Confirm Settings Update"} onClose={() => setShowSettingsConfirmModal(false)}>
-                            <p className="mb-6 text-muted-foreground">
-                                {t('profile.settings.confirm_desc') || "Are you sure you want to update your session duration? This will apply to new sessions."}
-                            </p>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => setShowSettingsConfirmModal(false)}
-                                    className="px-4 py-2 rounded-md hover:bg-muted"
-                                >
-                                    {t('profile.modal.cancel')}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        updateSettingsMutation.mutate({
-                                            session_duration_minutes: pendingDuration
-                                        });
-                                        setShowSettingsConfirmModal(false);
-                                    }}
-                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-                                >
-                                    {t('profile.modal.confirm')}
-                                </button>
-                            </div>
-                        </Modal>
-                    )
-                }
-            </div >
-        );
-    };
-
-
-    // SettingsTab extracted to outer component
 
     const SessionsTab = ({
         sessions,
@@ -636,7 +706,6 @@ export default function Profile() {
                             { id: 'overview', label: t('profile.tabs.overview'), icon: User },
                             { id: 'sessions', label: t('profile.tabs.sessions'), icon: List },
                             { id: 'api', label: "API Access", icon: KeyRound },
-                            { id: 'settings', label: t('profile.tabs.settings'), icon: Settings },
                             { id: 'danger', label: t('profile.tabs.danger'), icon: AlertTriangle },
                         ]}
                     />
@@ -652,194 +721,204 @@ export default function Profile() {
                         setIsEditingEmail={setIsEditingEmail}
                         setShowEmailConfirmModal={setShowEmailConfirmModal}
                         changePasswordMutation={changePasswordMutation}
+                        updateSettingsMutation={updateSettingsMutation}
                     />}
                     {activeTab === 'sessions' && <SessionsTab sessions={sessions} isLoadingSessions={isLoadingSessions} setRevokeSessionId={setRevokeSessionId} />}
-                    {activeTab === 'settings' && <SettingsTab user={user} updateSettingsMutation={updateSettingsMutation} />}
                     {activeTab === 'api' && <ApiTab />}
                     {activeTab === 'danger' && <DangerTab setShowRevokeAllModal={setShowRevokeAllModal} setShowDeleteAccountModal={setShowDeleteAccountModal} />}
                 </div>
             </div>
 
             {/* Modals */}
-            {revokeSessionId && (
-                <Modal title={t('profile.modal.revoke_title')} onClose={() => setRevokeSessionId(null)}>
-                    <p className="mb-6 text-muted-foreground">{t('profile.modal.revoke_confirm')}</p>
-                    <div className="flex justify-end gap-2">
-                        <button
-                            onClick={() => setRevokeSessionId(null)}
-                            className="px-4 py-2 rounded-md hover:bg-muted"
-                        >
-                            {t('profile.modal.cancel')}
-                        </button>
-                        <button
-                            onClick={() => {
-                                revokeSessionMutation.mutate(revokeSessionId);
-                                setRevokeSessionId(null);
-                            }}
-                            className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90"
-                        >
-                            {t('profile.modal.confirm')}
-                        </button>
-                    </div>
-                </Modal>
-            )}
-
-            {showRevokeAllModal && (
-                <Modal title={t('profile.revoke_sessions')} onClose={() => setShowRevokeAllModal(false)}>
-                    <p className="mb-6 text-muted-foreground">{t('profile.modal.revoke_all_confirm')}</p>
-                    <div className="flex justify-end gap-2">
-                        <button
-                            onClick={() => setShowRevokeAllModal(false)}
-                            className="px-4 py-2 rounded-md hover:bg-muted"
-                        >
-                            {t('profile.modal.cancel')}
-                        </button>
-                        <button
-                            onClick={() => {
-                                revokeAllSessionsMutation.mutate();
-                                setShowRevokeAllModal(false);
-                            }}
-                            className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90"
-                        >
-                            {t('profile.modal.confirm')}
-                        </button>
-                    </div>
-                </Modal>
-            )}
-
-
-
-            {showDeleteAccountModal && (
-                <Modal title={t('profile.modal.delete_title')} onClose={() => setShowDeleteAccountModal(false)}>
-                    <p className="mb-4 text-muted-foreground">{t('profile.modal.delete_confirm')}</p>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        deleteAccountMutation.mutate(formData.get('password') as string);
-                    }}>
-                        <input
-                            name="password"
-                            type="password"
-                            required
-                            placeholder={t('profile.modal.delete_confirm')}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6"
-                        />
+            {
+                revokeSessionId && (
+                    <Modal title={t('profile.modal.revoke_title')} onClose={() => setRevokeSessionId(null)}>
+                        <p className="mb-6 text-muted-foreground">{t('profile.modal.revoke_confirm')}</p>
                         <div className="flex justify-end gap-2">
                             <button
-                                type="button"
-                                onClick={() => setShowDeleteAccountModal(false)}
+                                onClick={() => setRevokeSessionId(null)}
                                 className="px-4 py-2 rounded-md hover:bg-muted"
                             >
                                 {t('profile.modal.cancel')}
                             </button>
                             <button
-                                type="submit"
-                                disabled={deleteAccountMutation.isPending}
-                                className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 flex items-center gap-2"
+                                onClick={() => {
+                                    revokeSessionMutation.mutate(revokeSessionId);
+                                    setRevokeSessionId(null);
+                                }}
+                                className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90"
                             >
-                                {deleteAccountMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                                {t('profile.modal.delete')}
+                                {t('profile.modal.revoke')}
                             </button>
                         </div>
-                    </form>
-                </Modal>
-            )}
+                    </Modal>
+                )
+            }
 
-            {showEmailConfirmModal && (
-                <Modal title={t('profile.email_confirm_title') || "Confirm Email Change"} onClose={() => setShowEmailConfirmModal(false)}>
-                    <p className="mb-4 text-muted-foreground">
-                        {t('profile.email_confirm_desc') || "Please enter your password to confirm the email change."}
-                    </p>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        updateSettingsMutation.mutate({
-                            session_duration_minutes: user?.session_duration_minutes || 60,
-                            email: email,
-                            password: formData.get('password') as string
-                        }, {
-                            onSuccess: (data) => {
-                                // If verification pending, keep modal open or switch to verification modal?
-                                // The mutation onSuccess handles opening verification modal.
-                                // But we need to close this one ONLY if NO verification pending.
-                                if (!data.data.verification_pending) {
-                                    setShowEmailConfirmModal(false);
-                                    setIsEditingEmail(false);
-                                } else {
-                                    setShowEmailConfirmModal(false); // Close password modal, open verification modal
+            {
+                showRevokeAllModal && (
+                    <Modal title={t('profile.modal.revoke_all_title')} onClose={() => setShowRevokeAllModal(false)}>
+                        <p className="mb-6 text-muted-foreground">{t('profile.modal.revoke_all_confirm')}</p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowRevokeAllModal(false)}
+                                className="px-4 py-2 rounded-md hover:bg-muted"
+                            >
+                                {t('profile.modal.cancel')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    revokeAllSessionsMutation.mutate();
+                                    setShowRevokeAllModal(false);
+                                }}
+                                className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90"
+                            >
+                                {t('profile.modal.revoke_all')}
+                            </button>
+                        </div>
+                    </Modal>
+                )
+            }
+
+            {
+                showDeleteAccountModal && (
+                    <Modal title={t('profile.modal.delete_title')} onClose={() => setShowDeleteAccountModal(false)}>
+                        <p className="mb-4 text-muted-foreground">
+                            {t('profile.modal.delete_desc')}
+                        </p>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            deleteAccountMutation.mutate(formData.get('password') as string);
+                        }}>
+                            <input
+                                name="password"
+                                type="password"
+                                required
+                                placeholder={t('profile.modal.delete_confirm')}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteAccountModal(false)}
+                                    className="px-4 py-2 rounded-md hover:bg-muted"
+                                >
+                                    {t('profile.modal.cancel')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={deleteAccountMutation.isPending}
+                                    className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 flex items-center gap-2"
+                                >
+                                    {deleteAccountMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {t('profile.modal.delete')}
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
+                )
+            }
+
+            {
+                showEmailConfirmModal && (
+                    <Modal title={t('profile.email_confirm_title') || "Confirm Email Change"} onClose={() => setShowEmailConfirmModal(false)}>
+                        <p className="mb-4 text-muted-foreground">
+                            {t('profile.email_confirm_desc') || "Please enter your password to confirm the email change."}
+                        </p>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            updateSettingsMutation.mutate({
+                                session_duration_minutes: user?.session_duration_minutes || 60,
+                                email: email,
+                                password: formData.get('password') as string
+                            }, {
+                                onSuccess: (data) => {
+                                    // If verification pending, keep modal open or switch to verification modal?
+                                    // The mutation onSuccess handles opening verification modal.
+                                    // But we need to close this one ONLY if NO verification pending.
+                                    if (!data.data.verification_pending) {
+                                        setShowEmailConfirmModal(false);
+                                        setIsEditingEmail(false);
+                                    } else {
+                                        setShowEmailConfirmModal(false); // Close password modal, open verification modal
+                                    }
                                 }
-                            }
-                        });
-                    }}>
-                        <input
-                            name="password"
-                            type="password"
-                            required
-                            placeholder={t('common.password') || "Password"}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6"
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowEmailConfirmModal(false)}
-                                className="px-4 py-2 rounded-md hover:bg-muted"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={updateSettingsMutation.isPending}
-                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
-                            >
-                                {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                                {t('common.confirm') || "Confirm"}
-                            </button>
-                        </div>
-                    </form>
-                </Modal>
-            )}
+                            });
+                        }}>
+                            <input
+                                name="password"
+                                type="password"
+                                required
+                                placeholder={t('common.password') || "Password"}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEmailConfirmModal(false)}
+                                    className="px-4 py-2 rounded-md hover:bg-muted"
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updateSettingsMutation.isPending}
+                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
+                                >
+                                    {updateSettingsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {t('common.confirm') || "Confirm"}
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
+                )
+            }
 
-            {showVerificationModal && (
-                <Modal title={t('auth.verify_email') || "Verify Email"} onClose={() => setShowVerificationModal(false)}>
-                    <p className="mb-4 text-muted-foreground">
-                        {t('auth.enter_code_desc') || "Please enter the 6-digit code sent to your new email address."}
-                    </p>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        confirmEmailChangeMutation.mutate({
-                            code: formData.get('code') as string,
-                            email: email
-                        });
-                    }}>
-                        <input
-                            name="code"
-                            type="text"
-                            required
-                            placeholder="123456"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6 font-mono text-center tracking-widest text-lg"
-                            maxLength={6}
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowVerificationModal(false)}
-                                className="px-4 py-2 rounded-md hover:bg-muted"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={confirmEmailChangeMutation.isPending}
-                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
-                            >
-                                {confirmEmailChangeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                                {t('auth.verify_btn') || "Verify"}
-                            </button>
-                        </div>
-                    </form>
-                </Modal>
-            )}
-        </div >
+            {
+                showVerificationModal && (
+                    <Modal title={t('auth.verify_email') || "Verify Email"} onClose={() => setShowVerificationModal(false)}>
+                        <p className="mb-4 text-muted-foreground">
+                            {t('auth.enter_code_desc') || "Please enter the 6-digit code sent to your new email address."}
+                        </p>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            confirmEmailChangeMutation.mutate({
+                                code: formData.get('code') as string,
+                                email: email
+                            });
+                        }}>
+                            <input
+                                name="code"
+                                type="text"
+                                required
+                                placeholder="123456"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-6 font-mono text-center tracking-widest text-lg"
+                                maxLength={6}
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowVerificationModal(false)}
+                                    className="px-4 py-2 rounded-md hover:bg-muted"
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={confirmEmailChangeMutation.isPending}
+                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2"
+                                >
+                                    {confirmEmailChangeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {t('auth.verify_btn') || "Verify"}
+                                </button>
+                            </div>
+                        </form>
+                    </Modal>
+                )
+            }
+        </div>
     );
 }

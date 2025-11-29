@@ -37,6 +37,11 @@ export default defineConfig({
                 target: 'http://backend:8000',
                 changeOrigin: true,
                 secure: false,
+                bypass: (req, res, options) => {
+                    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+                        return req.url
+                    }
+                }
             }
         }
     },

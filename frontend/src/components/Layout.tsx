@@ -37,7 +37,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: '/', label: t('nav.dashboard'), icon: ChefHat },
     { href: '/planer', label: t('nav.planer'), icon: Calendar },
-    ...(user?.role === 'admin' ? [{ href: '/admin', label: t('nav.admin'), icon: User }] : []),
+    ...(user?.role === 'admin' || (user?.role_rel?.permissions?.includes('manage:system')) ? [{ href: '/admin', label: t('nav.admin'), icon: User }] : []),
   ];
 
   return (

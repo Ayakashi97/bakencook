@@ -6,26 +6,29 @@ import models
 
 from email.header import Header
 
-def send_mail(db: Session, to_email: str, subject: str, body: str):
+def send_mail(db: Session, to_email: str, subject: str, body: str, smtp_config: dict = None):
     """
-    Sends an email using SMTP settings from the database.
+    Sends an email using SMTP settings from the database or provided config.
     Returns True if successful, False otherwise.
     """
-    # Fetch SMTP settings
-    settings = db.query(models.SystemSetting).filter(
-        models.SystemSetting.key.in_([
-            "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_email", "smtp_tls"
-        ])
-    ).all()
+    if smtp_config:
+        config = smtp_config
+    else:
+        # Fetch SMTP settings
+        settings = db.query(models.SystemSetting).filter(
+            models.SystemSetting.key.in_([
+                "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_email", "smtp_tls"
+            ])
+        ).all()
+        
+        config = {s.key: s.value for s in settings}
     
-    config = {s.key: s.value for s in settings}
-    
-    host = config.get("smtp_host")
+    host = config.get("smtp_host") or config.get("smtp_server")
     port = int(config.get("smtp_port", 587))
     user = config.get("smtp_user")
     password = config.get("smtp_password")
-    from_email = config.get("smtp_from_email", "noreply@breadplan.com")
-    use_tls = config.get("smtp_tls", "true").lower() == "true"
+    from_email = config.get("smtp_from_email") or config.get("sender_email") or "noreply@breadplan.com"
+    use_tls = str(config.get("smtp_tls", "true")).lower() == "true"
     
     if not host or not user or not password:
         from logger import logger

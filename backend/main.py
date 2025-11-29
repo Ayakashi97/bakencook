@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import text, func, desc, or_, cast, String
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import models
 import schemas
 from database import engine, get_db
@@ -179,6 +179,47 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
         is_verified=True # Admin is verified by default
     )
     db.add(new_admin)
+    
+    # Get app name and language
+    app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+    app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
+    
+    # Determine language (default to en, or use user's language if available)
+    # Note: current_user is not available here in system init, so default to 'en'
+    language = "en" 
+    
+    from email_templates import get_test_email_template
+    html_content = get_test_email_template(app_name, language)
+    
+    # Extract subject from template (a bit hacky, but keeps it self-contained)
+    # Or better, just define subject here based on language
+    subjects = {
+        "en": f"Test Email from {app_name}",
+        "de": f"Test-E-Mail von {app_name}"
+    }
+    subject = subjects.get(language, subjects["en"])
+
+    # This part of the code seems to be misplaced or intended for a different endpoint.
+    # The `request` object is not available here, and `test_recipient` is not part of `init_data`.
+    # Assuming this block was meant to be illustrative of how `get_test_email_template` would be used
+    # in a *separate* endpoint for sending test emails, and not directly within system initialization.
+    # For now, I will comment it out to maintain syntactical correctness and avoid errors.
+    # If the intention was to send a test email *during* initialization, `init_data` would need
+    # to include `test_recipient` and `smtp_config` details, and `email_utils.send_email` would need to be imported.
+
+    # success = email_utils.send_email(
+    #     to_email=request.test_recipient,
+    #     subject=subject,
+    #     body=html_content, # Send HTML content
+    #     smtp_config={
+    #         "smtp_server": request.smtp_server,
+    #         "smtp_port": request.smtp_port,
+    #         "smtp_user": request.smtp_user,
+    #         "smtp_password": request.smtp_password,
+    #         "sender_email": request.sender_email
+    #     },
+    #     is_html=True
+    # )
     
     # 2. Save Settings
     settings_to_save = {
@@ -424,38 +465,6 @@ def get_system_settings(
         "update_channel": channel,
         "debug_mode": debug_mode
     }
-
-@app.post("/system/settings")
-def update_system_settings(
-    settings: dict,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(has_permission("manage:system"))
-):
-    if "update_channel" in settings:
-        channel = settings["update_channel"]
-        if channel not in ["stable", "beta"]:
-            raise HTTPException(status_code=400, detail="Invalid channel")
-            
-        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
-        if setting:
-            setting.value = channel
-        else:
-            db.add(models.SystemSetting(key="update_channel", value=channel))
-            
-    if "debug_mode" in settings:
-        debug_mode = str(settings["debug_mode"]).lower()
-        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
-        if setting:
-            setting.value = debug_mode
-        else:
-            db.add(models.SystemSetting(key="debug_mode", value=debug_mode))
-            
-        # Update logger immediately
-        from logger import set_log_level
-        set_log_level(debug_mode == "true")
-            
-    db.commit()
-    return {"message": "Settings updated"}
 
 
 # --- Auth ---
@@ -1558,32 +1567,76 @@ def read_public_settings(db: Session = Depends(get_db)):
         result["enable_registration"] = "true"
     return result
 
-@app.get("/admin/settings", response_model=Dict[str, str])
+@app.get("/admin/settings", response_model=Dict[str, Any])
 def read_system_settings(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     settings = db.query(models.SystemSetting).all()
-    return {s.key: s.value for s in settings}
+    result = {}
+    for s in settings:
+        val = s.value
+        if s.key == "debug_mode":
+            val = s.value.lower() == "true"
+        result[s.key] = val
+    return result
 
-@app.put("/admin/settings", response_model=Dict[str, str])
+@app.put("/admin/settings", response_model=Dict[str, Any])
 def update_system_settings(
     settings_update: schemas.SystemSettingsUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     for key, value in settings_update.settings.items():
+        # Handle special cases or conversions
+        str_value = str(value)
+        if isinstance(value, bool):
+            str_value = "true" if value else "false"
+            
+        # Special handling for debug_mode
+        if key == "debug_mode":
+            from logger import set_log_level
+            set_log_level(str_value == "true")
+            
         setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
         if setting:
-            setting.value = value
+            setting.value = str_value
         else:
-            setting = models.SystemSetting(key=key, value=value)
+            setting = models.SystemSetting(key=key, value=str_value)
             db.add(setting)
+            
     db.commit()
     
     # Return updated settings
     all_settings = db.query(models.SystemSetting).all()
-    return {s.key: s.value for s in all_settings}
+    # Convert debug_mode back to boolean for frontend consistency if needed, 
+    # but the response model is Dict[str, Any] now (I should update that too)
+    
+    result = {}
+    for s in all_settings:
+        val = s.value
+        if s.key == "debug_mode":
+            val = s.value.lower() == "true"
+        result[s.key] = val
+        
+    return result
+
+@app.get("/admin/logs")
+def get_system_logs(
+    lines: int = 100,
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    log_file = "app.log"
+    if not os.path.exists(log_file):
+        return {"logs": []}
+        
+    try:
+        with open(log_file, "r") as f:
+            # Read all lines and return the last 'lines' count
+            all_lines = f.readlines()
+            return {"logs": all_lines[-lines:]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read logs: {e}")
 
 @app.on_event("startup")
 def startup_event():
@@ -2306,58 +2359,57 @@ def test_email_config(
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.header import Header
-        from email.mime.multipart import MIMEMultipart
-        
-        msg = MIMEMultipart()
-        
-        print(f"DEBUG: sender_email raw: {repr(request.sender_email)}")
-        print(f"DEBUG: test_recipient raw: {repr(request.test_recipient)}")
-        
-        # Sanitize inputs - Aggressively remove non-breaking spaces
-        sender_email = request.sender_email.replace('\xa0', '').strip()
-        
-        # User requested to send to logged in user
-        if not current_user.email:
-             raise HTTPException(status_code=400, detail="Current user has no email address configured")
-             
-        test_recipient = current_user.email.replace('\xa0', '').strip()
-        
-        msg['From'] = sender_email
-        msg['To'] = test_recipient
-        
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
-        app_name = app_name_setting.value if app_name_setting else "BakeAssist"
-        # Normalize app_name: remove nbsp, replace smart quotes
-        app_name = app_name.replace('\xa0', ' ').replace('’', "'").strip()
+        app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
         
-        msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
+        # Determine language
+        language = current_user.language if current_user.language else "en"
         
-        # Sanitize username
-        username = current_user.username.replace('\xa0', ' ').strip()
+        # Get HTML content
+        from email_templates import get_test_email_template
+        html_content = get_test_email_template(app_name, language)
         
-        body = f"Hello {username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        # Determine subject
+        subjects = {
+            "en": f"Test Email from {app_name}",
+            "de": f"Test-E-Mail von {app_name}"
+        }
+        subject = subjects.get(language, subjects["en"])
+        
+        # Use email_utils to send the email with the provided config
+        import email_utils
+        
+        # Construct config dict from request
+        smtp_config = {
+            "smtp_server": request.smtp_server,
+            "smtp_port": request.smtp_port,
+            "smtp_user": request.smtp_user,
+            "smtp_password": request.smtp_password,
+            "sender_email": request.sender_email
+        }
+        
+        recipient = request.test_recipient
+        if not recipient and current_user.email:
+            recipient = current_user.email
+            
+        if not recipient:
+             raise HTTPException(status_code=400, detail="No recipient specified")
 
-        server = smtplib.SMTP(request.smtp_server, request.smtp_port)
-        server.starttls()
+        success = email_utils.send_mail(
+            db=db,
+            to_email=recipient,
+            subject=subject,
+            body=html_content,
+            smtp_config=smtp_config
+        )
         
-        # Sanitize smtp_user and password
-        smtp_user = request.smtp_user.replace('\xa0', '').strip()
-        smtp_password = request.smtp_password.replace('\xa0', '').strip()
-        
-        server.login(smtp_user, smtp_password)
-        
-        # Ensure the message is converted to a string properly
-        text = msg.as_string()
-        
-        server.sendmail(sender_email, test_recipient, text)
-        server.quit()
-        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to send test email (check server logs)")
+            
         return {"message": "Test email sent successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to send test email: {str(e)}")
 

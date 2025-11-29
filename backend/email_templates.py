@@ -1,4 +1,5 @@
 from typing import Dict
+from datetime import datetime
 
 def get_email_template(template_type: str, language: str, context: Dict[str, str]) -> Dict[str, str]:
     """
@@ -165,3 +166,60 @@ def get_email_template(template_type: str, language: str, context: Dict[str, str
         'subject': template['subject'],
         'body': header_html + template['content'] + footer_html
     }
+
+def get_test_email_template(app_name: str, language: str = "en"):
+    translations = {
+        "en": {
+            "subject": f"Test Email from {app_name}",
+            "title": "Test Successful!",
+            "greeting": "Hello Administrator,",
+            "body": "This is a test email to verify your SMTP configuration. If you are reading this, your email settings are correct!",
+            "closing": "Happy Cooking!",
+            "footer": "This is an automated test message."
+        },
+        "de": {
+            "subject": f"Test-E-Mail von {app_name}",
+            "title": "Test Erfolgreich!",
+            "greeting": "Hallo Administrator,",
+            "body": "Dies ist eine Test-E-Mail, um Ihre SMTP-Konfiguration zu überprüfen. Wenn Sie dies lesen, sind Ihre E-Mail-Einstellungen korrekt!",
+            "closing": "Viel Spaß beim Kochen!",
+            "footer": "Dies ist eine automatische Testnachricht."
+        }
+    }
+    
+    t = translations.get(language, translations["en"])
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; margin: 0; padding: 0; }}
+            .container {{ max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }}
+            .header {{ background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); padding: 30px; text-align: center; }}
+            .header h1 {{ margin: 0; color: white; font-size: 24px; font-weight: 600; }}
+            .content {{ padding: 40px; text-align: center; }}
+            .icon {{ font-size: 48px; margin-bottom: 20px; display: block; }}
+            .footer {{ background: #f1f1f1; padding: 20px; text-align: center; font-size: 12px; color: #888; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>{t['title']}</h1>
+            </div>
+            <div class="content">
+                <span class="icon">✅</span>
+                <p><strong>{t['greeting']}</strong></p>
+                <p>{t['body']}</p>
+                <br>
+                <p>{t['closing']}</p>
+            </div>
+            <div class="footer">
+                <p>{t['footer']}</p>
+                <p>&copy; {datetime.now().year} {app_name}.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """

@@ -82,7 +82,17 @@ function useSettings() {
             toast.success(t('admin.settings_saved', 'Settings saved successfully'));
         },
         onError: (err: any) => {
-            toast.error(err.response?.data?.detail || 'Failed to save settings');
+            let msg = 'Failed to save settings';
+            if (err.response?.data?.detail) {
+                if (typeof err.response.data.detail === 'string') {
+                    msg = err.response.data.detail;
+                } else if (Array.isArray(err.response.data.detail)) {
+                    msg = err.response.data.detail.map((e: any) => e.msg).join(', ');
+                } else {
+                    msg = JSON.stringify(err.response.data.detail);
+                }
+            }
+            toast.error(msg);
         }
     });
 
@@ -94,6 +104,7 @@ function GeneralSettings() {
     const { settings, isLoading, updateSettingsMutation } = useSettings();
     const [formData, setFormData] = useState({ app_name: '', favicon_url: '', debug_mode: false });
     const [showFaviconModal, setShowFaviconModal] = useState(false);
+    const [showLogsModal, setShowLogsModal] = useState(false);
 
     useEffect(() => {
         if (settings) {
@@ -149,6 +160,15 @@ function GeneralSettings() {
                         onChange={() => setFormData({ ...formData, debug_mode: !formData.debug_mode })}
                     />
                 </div>
+                <div className="flex justify-end mt-2">
+                    <button
+                        onClick={() => setShowLogsModal(true)}
+                        className="text-sm text-primary hover:underline flex items-center gap-1"
+                    >
+                        <Eye className="h-3 w-3" />
+                        {t('admin.view_logs', 'View Logs')}
+                    </button>
+                </div>
             </div>
             <button
                 onClick={() => updateSettingsMutation.mutate(formData)}
@@ -158,6 +178,8 @@ function GeneralSettings() {
                 {updateSettingsMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {t('common.save')}
             </button>
+
+            {showLogsModal && <LogViewerModal onClose={() => setShowLogsModal(false)} />}
 
             {showFaviconModal && (
                 <Modal title={t('admin.select_favicon')} onClose={() => setShowFaviconModal(false)}>
@@ -492,5 +514,49 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: () => void 
                 )}
             />
         </button>
+    );
+}
+
+function LogViewerModal({ onClose }: { onClose: () => void }) {
+    const { t } = useTranslation();
+    const { data, isLoading, refetch } = useQuery({
+        queryKey: ['systemLogs'],
+        queryFn: async () => {
+            const res = await api.get('/admin/logs');
+            return res.data;
+        }
+    });
+
+    return (
+        <Modal title={t('admin.system_logs', 'System Logs')} onClose={onClose}>
+            <div className="space-y-4 w-[800px] max-w-[90vw]">
+                <div className="bg-black/90 text-green-400 font-mono text-xs p-4 rounded-lg h-[500px] overflow-y-auto whitespace-pre-wrap">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-full">
+                            <RefreshCw className="h-6 w-6 animate-spin text-white" />
+                        </div>
+                    ) : (
+                        data?.logs?.map((line: string, i: number) => (
+                            <div key={i}>{line}</div>
+                        )) || <div className="text-gray-500 italic">No logs found</div>
+                    )}
+                </div>
+                <div className="flex justify-end gap-2">
+                    <button
+                        onClick={() => refetch()}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium border rounded hover:bg-accent"
+                    >
+                        <RefreshCw className="h-3 w-3" />
+                        {t('common.refresh', 'Refresh')}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
+                    >
+                        {t('common.close')}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     );
 }

@@ -17,9 +17,15 @@ handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 
-# Add Handler to Logger
+# Create File Handler
+file_handler = logging.FileHandler("app.log")
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(formatter)
+
+# Add Handlers to Logger
 if not logger.handlers:
     logger.addHandler(handler)
+    logger.addHandler(file_handler)
 
 def get_logger(name: str = None):
     if name:

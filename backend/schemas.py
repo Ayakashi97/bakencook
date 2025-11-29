@@ -326,7 +326,7 @@ class SystemSetting(BaseModel):
         from_attributes = True
 
 class SystemSettingsUpdate(BaseModel):
-    settings: Dict[str, str]
+    settings: Dict[str, Any]
 
 class SystemInit(BaseModel):
     admin_username: str

@@ -5,12 +5,76 @@ set -e
 
 # Check if version argument is provided
 if [ -z "$1" ]; then
-    echo "Usage: $0 <new_version>"
-    echo "Example: $0 1.0.2-beta.1"
-    exit 1
+    echo "🔍 No version argument provided. Starting interactive mode..."
+    
+    # Get latest tag
+    LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+    # Remove 'v' prefix if present
+    VERSION_CLEAN=${LAST_TAG#v}
+    
+    # Parse version (Simple parsing assuming X.Y.Z format)
+    IFS='.' read -r MAJOR MINOR PATCH_AND_SUFFIX <<< "$VERSION_CLEAN"
+    # Separate Patch and Suffix (e.g. 10-beta.1)
+    PATCH=${PATCH_AND_SUFFIX%%-*}
+    
+    echo "ℹ️  Current Version: $LAST_TAG (Parsed: $MAJOR.$MINOR.$PATCH)"
+    
+    # 1. Ask for Release Type
+    echo ""
+    echo "Select Release Type:"
+    echo "  [0] Beta"
+    echo "  [1] Stable"
+    read -p "Choice (0/1): " RELEASE_TYPE_INPUT
+    
+    # 2. Ask for Update Type
+    echo ""
+    echo "Select Update Type:"
+    echo "  [1] Hotfix (Patch $MAJOR.$MINOR.$((PATCH+1)))"
+    echo "  [2] Minor  (Minor $MAJOR.$((MINOR+1)).0)"
+    echo "  [3] Major  (Major $((MAJOR+1)).0.0)"
+    read -p "Choice (1-3): " UPDATE_TYPE_INPUT
+    
+    # Calculate New Version
+    NEXT_MAJOR=$MAJOR
+    NEXT_MINOR=$MINOR
+    NEXT_PATCH=$PATCH
+    
+    case $UPDATE_TYPE_INPUT in
+        1)
+            NEXT_PATCH=$((PATCH + 1))
+            ;;
+        2)
+            NEXT_MINOR=$((MINOR + 1))
+            NEXT_PATCH=0
+            ;;
+        3)
+            NEXT_MAJOR=$((MAJOR + 1))
+            NEXT_MINOR=0
+            NEXT_PATCH=0
+            ;;
+        *)
+            echo "❌ Invalid update type selected."
+            exit 1
+            ;;
+    esac
+    
+    NEW_VERSION="$NEXT_MAJOR.$NEXT_MINOR.$NEXT_PATCH"
+    
+    if [ "$RELEASE_TYPE_INPUT" == "0" ]; then
+        NEW_VERSION="${NEW_VERSION}-beta.1"
+    fi
+    
+    echo ""
+    echo "🎯 Target Version: $NEW_VERSION"
+    read -p "Is this correct? (y/n): " CONFIRM
+    if [[ "$CONFIRM" != "y" ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+    
+else
+    NEW_VERSION=$1
 fi
-
-NEW_VERSION=$1
 CURRENT_BRANCH=$(git branch --show-current)
 
 # Extract base version (e.g., 1.0.2 from 1.0.2-beta.1)

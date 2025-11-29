@@ -1071,7 +1071,7 @@ export default function RecipeEdit() {
                 }}
                 onSave={handleIngredientSave}
                 units={availableUnits}
-                recipes={availableRecipes}
+
                 initialData={pendingSearchTerm ? {
                     name: {
                         de: { singular: pendingSearchTerm, plural: pendingSearchTerm },

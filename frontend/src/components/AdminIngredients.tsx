@@ -11,14 +11,8 @@ import { IngredientFormModal } from './IngredientFormModal';
 interface Ingredient {
     id: number;
     name: any; // JSON: {"en": {"singular": "...", "plural": "..." }, "de": ... }
-    linked_recipe_id?: string; // UUID string
     default_unit_id?: number;
     is_verified?: boolean;
-}
-
-interface Recipe {
-    id: string; // UUID
-    title: string; // Changed from name to title to match backend
 }
 
 interface Unit {
@@ -30,7 +24,6 @@ interface Unit {
 export default function AdminIngredients() {
     const { t, i18n } = useTranslation();
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-    const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [units, setUnits] = useState<Unit[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -47,7 +40,6 @@ export default function AdminIngredients() {
 
     useEffect(() => {
         loadIngredients();
-        loadRecipes();
         loadUnits();
     }, []);
 
@@ -66,23 +58,6 @@ export default function AdminIngredients() {
             setIngredients([]);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const loadRecipes = async () => {
-        try {
-            const res = await api.get('/recipes', { params: { limit: 1000 } });
-            if (res.data && Array.isArray(res.data.items)) {
-                setRecipes(res.data.items);
-            } else if (Array.isArray(res.data)) {
-                setRecipes(res.data);
-            } else {
-                console.error('Recipes data format invalid:', res.data);
-                setRecipes([]);
-            }
-        } catch (error) {
-            console.error('Failed to load recipes', error);
-            setRecipes([]);
         }
     };
 
@@ -332,7 +307,6 @@ export default function AdminIngredients() {
                     }}
                     initialData={editingId ? ingredients.find(i => i.id === editingId) : undefined}
                     units={units}
-                    recipes={recipes}
                 />
 
                 {showDeleteModal && (

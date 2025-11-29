@@ -140,7 +140,6 @@ class IngredientBase(BaseModel):
     unit: str
     temperature: Optional[float] = None
     type: IngredientType
-    linked_recipe_id: Optional[UUID] = None
 
 class IngredientCreate(IngredientBase):
     pass
@@ -295,7 +294,6 @@ class IngredientItemBase(BaseModel):
              return {"en": v, "de": v}
         return v
 
-    linked_recipe_id: Optional[UUID] = None # Changed to UUID to match Recipe.id type
     is_verified: bool = False
 
 class IngredientItemCreate(IngredientItemBase):
@@ -304,7 +302,6 @@ class IngredientItemCreate(IngredientItemBase):
 class IngredientItem(IngredientItemBase):
     id: int
     default_unit: Optional[Unit] = None
-    linked_recipe: Optional['Recipe'] = None  # We need to be careful with circular imports here, maybe use "Recipe" string or a simplified schema
 
     class Config:
         from_attributes = True

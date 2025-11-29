@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Scale, Globe, Loader2, Save } from 'lucide-react';
+import { Scale, Loader2, Save } from 'lucide-react';
 import { Modal } from './Modal';
 import { api } from '../lib/api';
 import { useKeyboardSave } from '../hooks/useKeyboardSave';
@@ -12,10 +12,7 @@ interface Unit {
     description: any;
 }
 
-interface Recipe {
-    id: string;
-    title: string;
-}
+
 
 interface IngredientFormModalProps {
     isOpen: boolean;
@@ -23,7 +20,6 @@ interface IngredientFormModalProps {
     onSave: (ingredient: any) => void;
     initialData?: any; // If editing
     units: Unit[];
-    recipes: Recipe[];
 }
 
 export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
@@ -31,14 +27,11 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
     onClose,
     onSave,
     initialData,
-    units,
-    recipes
+    units
 }) => {
     const { t } = useTranslation();
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'de' | 'en'>('de');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 
     const [formData, setFormData] = useState({
@@ -48,7 +41,6 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
         name_en_plural: '',
         same_de: true,
         same_en: true,
-        linked_recipe_id: undefined as string | undefined,
         default_unit_id: undefined as number | undefined
     });
 
@@ -72,13 +64,8 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
                     name_en_plural: enPlural,
                     same_de: deSingular === dePlural,
                     same_en: enSingular === enPlural,
-                    linked_recipe_id: initialData.linked_recipe_id,
                     default_unit_id: initialData.default_unit_id
                 });
-                if (initialData.linked_recipe_id) {
-                    const linked = recipes.find(r => r.id === initialData.linked_recipe_id);
-                    if (linked) setSearchTerm(linked.title);
-                }
             } else {
                 // Reset
                 setFormData({
@@ -88,7 +75,6 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
                     name_en_plural: '',
                     same_de: true,
                     same_en: true,
-                    linked_recipe_id: undefined,
                     default_unit_id: undefined
                 });
             }
@@ -119,7 +105,6 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
                             : (formData.name_en_plural || formData.name_de_plural || formData.name_de_singular)
                     }
                 },
-                linked_recipe_id: formData.linked_recipe_id,
                 default_unit_id: formData.default_unit_id
             };
 
@@ -341,55 +326,8 @@ export const IngredientFormModal: React.FC<IngredientFormModalProps> = ({
                             ))}
                         </select>
                     </div>
-                    <div className="space-y-2 relative">
-                        <label className="text-sm font-medium flex items-center gap-2">
-                            <Globe className="h-4 w-4" /> {t('admin.linked_recipe')}
-                        </label>
-                        <input
-                            type="text"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
-                            placeholder={t('admin.search') || "Search..."}
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setIsDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsDropdownOpen(true)}
-                            onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                        />
-                        {formData.linked_recipe_id && (
-                            <div className="absolute right-2 top-2.5 text-xs bg-primary/10 text-primary px-2 rounded pointer-events-none">
-                                Selected
-                            </div>
-                        )}
-
-                        {isDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-auto">
-                                {recipes
-                                    .filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase()))
-                                    .map(recipe => (
-                                        <div
-                                            key={recipe.id}
-                                            className={`px-3 py-2 text-sm cursor-pointer hover:bg-accent ${formData.linked_recipe_id === recipe.id ? 'bg-accent/50 text-primary' : ''}`}
-                                            onMouseDown={() => {
-                                                setFormData({ ...formData, linked_recipe_id: recipe.id });
-                                                setSearchTerm(recipe.title);
-                                                setIsDropdownOpen(false);
-                                            }}
-                                        >
-                                            {recipe.title}
-                                        </div>
-                                    ))
-                                }
-                                {recipes.filter(r => r.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                                        {t('search.no_results') || "No results found."}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
                 </div>
+
 
                 <div className="flex justify-end gap-2 pt-4">
                     <button

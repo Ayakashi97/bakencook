@@ -41,7 +41,7 @@ const OverviewTab = ({
     changePasswordMutation: any;
     updateSettingsMutation: any;
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const [passwords, setPasswords] = useState({ old: '', new: '' });
     const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -117,7 +117,7 @@ const OverviewTab = ({
         <div className="space-y-6">
             {/* Header Stats Card */}
             <div className="glass-card rounded-xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
+
 
                 <div className="relative flex flex-col md:flex-row gap-8 items-start mt-4">
                     {/* Avatar & Basic Info */}
@@ -161,7 +161,7 @@ const OverviewTab = ({
                         </div>
                         <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
                             <Globe className="w-5 h-5 text-purple-500 mb-1" />
-                            <span className="text-sm font-bold mt-1 uppercase">{user?.language || 'EN'}</span>
+                            <span className="text-sm font-bold mt-1 uppercase">{i18n.language?.split('-')[0] || 'EN'}</span>
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Language</span>
                         </div>
                     </div>

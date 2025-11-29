@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, File, BackgroundTasks, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 import models
 import schemas
 from database import engine, get_db, SessionLocal
-from ai_parser import parse_recipe_from_text
+from ai_parser import parse_recipe_from_text, parse_recipe_from_image
 from scraper import scrape_url
 from datetime import datetime, timedelta
 from auth import get_password_hash, verify_password, create_access_token, get_current_user, get_current_active_user, has_permission, get_optional_current_user, get_user_for_automation
@@ -2190,6 +2190,41 @@ def rate_recipe(
     return float(avg) if avg else 0.0
 
 # --- Import ---
+
+
+@app.post("/import/image", response_model=schemas.RecipeCreate)
+async def import_from_image(
+    file: UploadFile = File(...),
+    language: str = Form("en"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        # Save file temporarily
+        file_extension = os.path.splitext(file.filename)[1]
+        temp_filename = f"temp_import_{uuid.uuid4()}{file_extension}"
+        temp_path = f"static/uploads/{temp_filename}"
+        
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Parse with AI
+        api_key = get_gemini_api_key(db)
+        
+        try:
+            recipe_data = await parse_recipe_from_image(temp_path, language=language, api_key=api_key)
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+                
+        return recipe_data
+
+    except Exception as e:
+        # Ensure cleanup in case of error (though finally block handles it, good to be safe)
+        if 'temp_path' in locals() and os.path.exists(temp_path):
+             os.remove(temp_path)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/import/url", response_model=schemas.RecipeCreate)
 async def import_from_url(

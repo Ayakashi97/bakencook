@@ -242,9 +242,12 @@ export default function RecipeEdit() {
         setImportError(undefined);
 
         try {
+            // Artificial delay to show "Checking" state
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Pre-check for duplicate
-            const checkRes = await api.get<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
-                params: { url: importUrl }
+            const checkRes = await api.post<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
+                url: importUrl
             });
 
             if (checkRes.data.exists && checkRes.data.recipe_id) {
@@ -270,7 +273,9 @@ export default function RecipeEdit() {
             }
         } catch (error) {
             console.error("Failed to check url", error);
-            // Continue with import if check fails
+            setImportStatus('error');
+            setImportError(t('edit.check_failed', 'Failed to check for duplicates'));
+            return;
         }
 
         // Proceed with import

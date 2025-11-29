@@ -336,6 +336,7 @@ i18n
                     "edit.duplicate_msg": "This recipe has already been imported. You will be redirected to the existing recipe in {{seconds}} seconds.",
                     "edit.go_now": "Go to Recipe",
                     "edit.stay": "Stay here",
+                    "edit.check_failed": "Failed to check for duplicates. Please try again.",
                     "profile.api.regenerate_confirm_title": "Regenerate API Key?",
                     "profile.api.regenerate_confirm_desc": "This will invalidate your existing API Key immediately. Any scripts using the old key will stop working.",
                     "planer.title": "Plan Your Schedule",

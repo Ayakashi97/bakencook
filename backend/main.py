@@ -86,7 +86,7 @@ app = FastAPI(title="Bake Assist API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -2228,16 +2228,26 @@ async def import_from_url(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/recipes/check-url")
+from pydantic import BaseModel
+
+class CheckUrlRequest(BaseModel):
+    url: str
+
+@app.post("/recipes/check-url")
 def check_recipe_url(
-    url: str,
+    request: CheckUrlRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    existing = db.query(models.Recipe).filter(models.Recipe.source_url == url, models.Recipe.user_id == current_user.id).first()
-    if existing:
-        return {"exists": True, "recipe_id": str(existing.id)}
-    return {"exists": False, "recipe_id": None}
+    try:
+        # print(f"Checking URL: {request.url}")
+        existing = db.query(models.Recipe).filter(models.Recipe.source_url == request.url, models.Recipe.user_id == current_user.id).first()
+        if existing:
+            return {"exists": True, "recipe_id": str(existing.id)}
+        return {"exists": False, "recipe_id": None}
+    except Exception as e:
+        print(f"Error checking URL: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- Schedule (Simple Calculation) ---
 

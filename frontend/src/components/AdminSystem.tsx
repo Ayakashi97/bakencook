@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
+import { Save, RefreshCw, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
@@ -16,11 +16,12 @@ export default function AdminSystem() {
     return (
         <div className="space-y-6">
             <div className="glass-card rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-sm">
+                {/* Header Removed as requested */}
+                {/* <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-sm">
                     <h2 className="font-semibold flex items-center gap-2 shrink-0">
                         <Server className="h-5 w-5" /> {t('admin.server_mgmt') || "Server Management"}
                     </h2>
-                </div>
+                </div> */}
 
                 <div className="border-b border-white/10">
                     <nav className="flex -mb-px px-6 overflow-x-auto">

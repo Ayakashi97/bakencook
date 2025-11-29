@@ -20,6 +20,7 @@ import uuid
 import secrets
 from email_utils import send_mail
 from email_templates import get_email_template
+from logger import logger
 
 def get_gemini_api_key(db: Session) -> Optional[str]:
     setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "gemini_api_key").first()
@@ -45,7 +46,7 @@ try:
         conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR DEFAULT 'en'"))
         conn.commit()
 except Exception as e:
-    # print(f"Migration note: {e}")
+    # logger.info(f"Migration note: {e}")
     pass
 
 # Seed Roles
@@ -95,9 +96,39 @@ app.add_middleware(
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
+# Security Headers Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.on_event("startup")
+def startup_event():
+    # Load System Settings
+    try:
+        db = SessionLocal()
+        # Debug Mode
+        debug_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
+        if debug_setting and debug_setting.value.lower() == "true":
+            from logger import set_log_level
+            set_log_level(True)
+            from logger import logger
+            logger.info("Debug Mode enabled via System Settings")
+        db.close()
+    except Exception as e:
+        print(f"Startup error: {e}")
 
 @app.get("/")
 def read_root():
@@ -200,7 +231,7 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
             else:
                 db.add(models.SystemSetting(key="favicon_url", value=val))
         except Exception as e:
-            print(f"Failed to save favicon: {e}")
+            logger.error(f"Failed to save favicon: {e}")
 
     db.commit()
     
@@ -294,7 +325,7 @@ def check_for_updates(
         }
 
     except Exception as e:
-        print(f"Update check failed: {e}")
+        logger.error(f"Update check failed: {e}")
         return {"update_available": False, "error": str(e)}
 
 # --- Update Execution ---
@@ -385,8 +416,13 @@ def get_system_settings(
     channel_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
     channel = channel_setting.value if channel_setting else "stable"
     
+    # Fetch debug mode
+    debug_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
+    debug_mode = debug_setting.value.lower() == "true" if debug_setting else False
+    
     return {
-        "update_channel": channel
+        "update_channel": channel,
+        "debug_mode": debug_mode
     }
 
 @app.post("/system/settings")
@@ -405,6 +441,18 @@ def update_system_settings(
             setting.value = channel
         else:
             db.add(models.SystemSetting(key="update_channel", value=channel))
+            
+    if "debug_mode" in settings:
+        debug_mode = str(settings["debug_mode"]).lower()
+        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
+        if setting:
+            setting.value = debug_mode
+        else:
+            db.add(models.SystemSetting(key="debug_mode", value=debug_mode))
+            
+        # Update logger immediately
+        from logger import set_log_level
+        set_log_level(debug_mode == "true")
             
     db.commit()
     return {"message": "Settings updated"}

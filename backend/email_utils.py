@@ -28,7 +28,8 @@ def send_mail(db: Session, to_email: str, subject: str, body: str):
     use_tls = config.get("smtp_tls", "true").lower() == "true"
     
     if not host or not user or not password:
-        print("SMTP settings not configured")
+        from logger import logger
+        logger.warning("SMTP settings not configured")
         return False
         
     try:
@@ -54,5 +55,6 @@ def send_mail(db: Session, to_email: str, subject: str, body: str):
         server.quit()
         return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        from logger import logger
+        logger.error(f"Failed to send email: {e}")
         return False

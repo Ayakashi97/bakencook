@@ -92,14 +92,15 @@ function useSettings() {
 function GeneralSettings() {
     const { t } = useTranslation();
     const { settings, isLoading, updateSettingsMutation } = useSettings();
-    const [formData, setFormData] = useState({ app_name: '', favicon_url: '' });
+    const [formData, setFormData] = useState({ app_name: '', favicon_url: '', debug_mode: false });
     const [showFaviconModal, setShowFaviconModal] = useState(false);
 
     useEffect(() => {
         if (settings) {
             setFormData({
                 app_name: settings.app_name || '',
-                favicon_url: settings.favicon_url || ''
+                favicon_url: settings.favicon_url || '',
+                debug_mode: settings.debug_mode || false
             });
         }
     }, [settings]);
@@ -134,6 +135,19 @@ function GeneralSettings() {
                     >
                         {t('admin.change_favicon')}
                     </button>
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">{t('admin.debug_mode', 'Debug Mode')}</label>
+                <div className="flex items-center justify-between p-4 rounded-lg border border-white/10 bg-white/5">
+                    <div>
+                        <div className="font-medium">{t('admin.enable_debug', 'Enable Debug Logging')}</div>
+                        <div className="text-sm text-muted-foreground">{t('admin.enable_debug_desc', 'Show detailed logs in backend console')}</div>
+                    </div>
+                    <Switch
+                        checked={formData.debug_mode === true}
+                        onChange={() => setFormData({ ...formData, debug_mode: !formData.debug_mode })}
+                    />
                 </div>
             </div>
             <button

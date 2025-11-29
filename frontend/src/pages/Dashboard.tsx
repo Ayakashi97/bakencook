@@ -70,14 +70,11 @@ export default function Dashboard() {
                     />
                 </div>
 
-                <div className="shrink-0">
-                    <Link to="/recipe/new">
-                        <Button size="sm">
-                            <Plus className="w-4 h-4 mr-2" />
-                            {t('dashboard.create_btn')}
-                        </Button>
-                    </Link>
-                </div>
+                <Link to="/recipe/new">
+                    <Button size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('dashboard.create_btn')}>
+                        <Plus className="w-4 h-4" />
+                    </Button>
+                </Link>
             </div>
 
             {/* Search & Sort Controls */}

@@ -881,7 +881,7 @@ export default function Planer() {
                                     </div>
                                 )}
 
-                                {eventType === 'recipe' && (
+                                {eventType === 'recipe' && recipes?.find(r => r.id === selectedRecipeId)?.type === 'baking' && (
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">{t('planer.real_temp') || "Real Temperature (°C)"}</label>
                                         <div className="relative">

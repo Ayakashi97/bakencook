@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle, MoreHorizontal, Utensils } from 'lucide-react';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 import { IngredientFormModal } from './IngredientFormModal';
@@ -243,7 +243,7 @@ export default function AdminIngredients() {
             <div className="glass-card rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
                     <h2 className="font-semibold flex items-center gap-2 shrink-0">
-                        <Search className="h-5 w-5" /> {t('admin.ingredients_title')}
+                        <Utensils className="h-5 w-5" /> {t('admin.ingredients_title')}
                     </h2>
                     <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-end">
                         <div className="relative w-full sm:max-w-xs">

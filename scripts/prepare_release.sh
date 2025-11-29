@@ -7,8 +7,10 @@ set -e
 if [ -z "$1" ]; then
     echo "🔍 No version argument provided. Starting interactive mode..."
     
-    # Get latest tag (globally, not just reachable)
-    LAST_TAG=$(git tag --sort=-v:refname | head -n 1)
+    # Get latest tag (globally) using Python for correct SemVer sorting (stable > beta)
+    # git tag sort and sort -V are unreliable for beta vs stable
+    LAST_TAG=$(git tag | python3 -c "import sys; from packaging.version import parse; lines = [l.strip() for l in sys.stdin if l.strip()]; lines.sort(key=lambda x: parse(x), reverse=True); print(lines[0] if lines else '0.0.0')")
+    
     if [ -z "$LAST_TAG" ]; then
         LAST_TAG="0.0.0"
     fi

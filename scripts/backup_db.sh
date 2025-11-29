@@ -29,7 +29,19 @@ mkdir -p "$BACKUP_DIR"
 echo "Backing up database to $BACKUP_FILE..."
 
 # Check if running in Docker
-if command -v docker &> /dev/null && docker ps | grep -q "$CONTAINER_NAME"; then
+if [ -f "/.dockerenv" ]; then
+    echo "Running in Docker environment..."
+    # Override localhost to 'db' service name when in Docker
+    if [ "$DB_HOST" = "localhost" ] || [ "$DB_HOST" = "127.0.0.1" ]; then
+        DB_HOST="db"
+    fi
+    DB_HOST="${DB_HOST:-db}"
+    
+    echo "Connecting to database at $DB_HOST..."
+    export PGPASSWORD="${DB_PASSWORD}"
+    pg_dump -h "$DB_HOST" -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
+elif command -v docker &> /dev/null && docker ps | grep -q "$CONTAINER_NAME"; then
+    echo "Running on host with Docker..."
     docker exec -t "$CONTAINER_NAME" pg_dump -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
 else
     # Try local pg_dump

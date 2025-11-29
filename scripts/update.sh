@@ -101,9 +101,9 @@ if [ -f "/.dockerenv" ]; then
 elif [ -n "$BACKEND_SERVICE_NAME" ]; then
     echo "Restarting service: $BACKEND_SERVICE_NAME..."
     if command -v systemctl &> /dev/null; then
-        if systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
+        if systemctl restart "$BACKEND_SERVICE_NAME" --no-ask-password 2>/dev/null; then
             echo "Service restarted."
-        elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
+        elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME" --no-ask-password 2>/dev/null; then
             echo "Service restarted (with sudo)."
         else
             echo "Warning: Could not restart service automatically."

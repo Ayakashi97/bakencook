@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.11] - 2025-11-29
+### Changes
+- feat: add an option to promote beta versions to stable releases.
+- chore: ignore backup directories and fetch the latest global tag in the release preparation script.
+
 ## [1.0.11-beta.1] - 2025-11-29
 ### Changes
 - feat: add interactive version bumping and release type selection to the prepare_release script.

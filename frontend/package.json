@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "dependencies": {
     "@tanstack/react-query": "^5.90.10",
     "axios": "^1.13.2",

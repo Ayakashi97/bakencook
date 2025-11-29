@@ -11,11 +11,12 @@ interface ImportProgressModalProps {
     error?: string;
     duplicateRecipeId?: string | null;
     redirectCountdown?: number;
+    successCountdown?: number;
     onRedirect?: () => void;
     onCancel?: () => void;
 }
 
-export function ImportProgressModal({ isOpen, onClose, status, error, duplicateRecipeId, redirectCountdown, onRedirect, onCancel }: ImportProgressModalProps) {
+export function ImportProgressModal({ isOpen, onClose, status, error, duplicateRecipeId, redirectCountdown, successCountdown, onRedirect, onCancel }: ImportProgressModalProps) {
     const { t } = useTranslation();
     const [steps, setSteps] = useState([
         { id: 'checking', label: t('import.step_checking', 'Checking for duplicates'), status: 'pending' },
@@ -111,12 +112,17 @@ export function ImportProgressModal({ isOpen, onClose, status, error, duplicateR
                 )}
 
                 {status === 'completed' && (
-                    <button
-                        onClick={onClose}
-                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
-                    >
-                        {t('common.continue', 'Continue')}
-                    </button>
+                    <div className="space-y-4 pt-2 border-t">
+                        <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-500 text-sm rounded-md border border-green-500/20">
+                            {t('import.success_redirect_msg', { seconds: successCountdown })}
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
+                        >
+                            {t('common.continue', 'Continue')}
+                        </button>
+                    </div>
                 )}
 
                 {status === 'error' && (

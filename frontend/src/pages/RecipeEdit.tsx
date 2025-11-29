@@ -65,6 +65,9 @@ export default function RecipeEdit() {
     const [redirectCountdown, setRedirectCountdown] = useState(5);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Success handling
+    const [importedData, setImportedData] = useState<any>(null);
+
     const [availableIngredients, setAvailableIngredients] = useState<any[]>([]);
     const [availableUnits, setAvailableUnits] = useState<any[]>([]);
     const [availableRecipes, setAvailableRecipes] = useState<any[]>([]);
@@ -175,25 +178,30 @@ export default function RecipeEdit() {
         },
         onSuccess: (data) => {
             setImportStatus('completed');
-            // Delay closing to show completion state
-            setTimeout(() => {
-                // If import returns flat structure (legacy), wrap it
-                const importedData = data.data;
-                if (!importedData.chapters && (importedData.ingredients || importedData.steps)) {
-                    importedData.chapters = [{
-                        name: 'Imported Chapter',
-                        order_index: 0,
-                        ingredients: importedData.ingredients || [],
-                        steps: importedData.steps || []
-                    }];
-                    delete importedData.ingredients;
-                    delete importedData.steps;
-                }
-                setFormData(importedData);
-                setIsImporting(false);
-                setImportStatus('idle');
-                setReviewMode(true);
-                toast.success(t('admin.import_success'));
+
+            // Process data
+            const imported = data.data;
+            if (!imported.chapters && (imported.ingredients || imported.steps)) {
+                imported.chapters = [{
+                    name: 'Imported Chapter',
+                    order_index: 0,
+                    ingredients: imported.ingredients || [],
+                    steps: imported.steps || []
+                }];
+                delete imported.ingredients;
+                delete imported.steps;
+            }
+
+            setImportedData(imported);
+            setRedirectCountdown(5); // Reuse for success countdown
+
+            // Start countdown
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = setInterval(() => {
+                setRedirectCountdown((prev) => {
+                    if (prev <= 1) return 0;
+                    return prev - 1;
+                });
             }, 1000);
         },
         onError: (error: any) => {
@@ -234,13 +242,26 @@ export default function RecipeEdit() {
         }
     });
 
-    // Handle redirect when countdown hits 0
+    // Handle redirect when countdown hits 0 (Duplicate)
     useEffect(() => {
         if (redirectCountdown === 0 && duplicateRecipeId && importStatus === 'duplicate') {
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
             navigate(`/recipe/${duplicateRecipeId}`);
         }
     }, [redirectCountdown, duplicateRecipeId, importStatus, navigate]);
+
+    // Handle success transition when countdown hits 0
+    useEffect(() => {
+        if (redirectCountdown === 0 && importStatus === 'completed' && importedData) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+            // Apply data and switch mode
+            setFormData(importedData);
+            setReviewMode(true);
+            setIsImporting(false);
+            setImportedData(null);
+        }
+    }, [redirectCountdown, importStatus, importedData]);
 
     const handleImport = async () => {
         if (!importUrl) return;
@@ -941,6 +962,7 @@ export default function RecipeEdit() {
                 error={importError}
                 duplicateRecipeId={duplicateRecipeId}
                 redirectCountdown={redirectCountdown}
+                successCountdown={importStatus === 'completed' ? redirectCountdown : undefined}
                 onRedirect={() => {
                     if (duplicateRecipeId) {
                         navigate(`/recipe/${duplicateRecipeId}`);

@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.10.0] - 2025-11-29
+### Changes
+- feat: Add proxy bypass for HTML requests in Vite dev server configuration
+- feat: Explicitly set user enum role based on assigned role name and display admin navigation based on role or system permission.
+- feat: mount VERSION file into backend service container
+- feat: Install git in Dockerfile, mount versioning files in docker-compose, and add update check failed translation.
+- feat: mount VERSION file to frontend service in docker-compose
+- feat: add GNU Affero General Public License v3
+
 ## [1.0.9] - 2025-11-28
 ### Changes
 - feat: add i18n keys for update restart messages and common saved state

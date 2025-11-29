@@ -790,14 +790,74 @@ def delete_my_account(
     db.commit()
     return {"message": "Account deleted"}
 
-@app.post("/users/me/api-key")
-def generate_api_key(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
     # Generate new API Key
     import secrets
     import auth
+    
+    new_key = secrets.token_urlsafe(32)
+    current_user.api_key = new_key
+    db.commit()
+    return {"api_key": new_key}
+
+# --- Backup & Restore ---
+
+@app.get("/admin/system/backup")
+def download_backup(
+    background_tasks: BackgroundTasks,
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    from backup import create_backup
+    from fastapi.responses import FileResponse
+    
+    try:
+        zip_path = create_backup()
+        filename = os.path.basename(zip_path)
+        
+        # Schedule cleanup after response
+        def cleanup(path):
+            try:
+                os.remove(path)
+            except:
+                pass
+                
+        background_tasks.add_task(cleanup, zip_path)
+        
+        return FileResponse(
+            path=zip_path, 
+            filename=filename, 
+            media_type='application/zip'
+        )
+    except Exception as e:
+        logger.error(f"Backup failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
+
+@app.post("/admin/system/restore")
+async def upload_restore(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    from backup import restore_backup
+    
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Only .zip files are allowed")
+        
+    # Save uploaded file temporarily
+    temp_zip_path = f"temp_restore_{uuid.uuid4()}.zip"
+    try:
+        with open(temp_zip_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Perform restore
+        restore_backup(temp_zip_path)
+        
+        return {"message": "System restored successfully"}
+        
+    except Exception as e:
+        logger.error(f"Restore failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Restore failed: {str(e)}")
+    finally:
+        if os.path.exists(temp_zip_path):
+            os.remove(temp_zip_path)
     
     # Raw key (shown ONCE to user)
     raw_key = secrets.token_urlsafe(32)

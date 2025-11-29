@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.17] - 2025-11-29
+### Changes
+- feat: apply imported recipe data and enable review mode when import modal is closed after successful import
+- feat: Update image import endpoint to accept language as form data.
+- feat: Implement AI-powered recipe import from images with new backend endpoint and frontend UI.
+- docs: Update Debian sudoers configuration for bakencook-backend restart to include `--no-ask-password` and rename the config file.
+
 ## [1.0.16] - 2025-11-29
 ### Changes
 - feat: Update image import endpoint to accept language as form data.

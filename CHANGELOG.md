@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.12] - 2025-11-29
+### Changes
+- fix: improve latest tag retrieval by using Python for semantic version sorting
+- feat: Install postgresql-client, enable direct pg_dump in Docker, and add --no-ask-password to systemctl restart.
+- feat: add an option to promote beta versions to stable releases.
+- chore: ignore backup directories and fetch the latest global tag in the release preparation script.
+
 ## [1.0.12-beta.1] - 2025-11-29
 ### Changes
 - fix: improve latest tag retrieval by using Python for semantic version sorting

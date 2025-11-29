@@ -493,7 +493,7 @@ export default function Profile() {
     };
 
     const ApiTab = () => {
-        const { t } = useTranslation();
+        //const { t } = useTranslation();
         const { data: apiStatus, isLoading: isLoadingKey, refetch } = useQuery({
             queryKey: ['api-key'],
             queryFn: async () => {

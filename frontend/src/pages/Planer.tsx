@@ -408,48 +408,45 @@ export default function Planer() {
 
     return (
         <div className="space-y-6 pb-20 h-[calc(100vh-140px)] flex flex-col">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass-card p-4 rounded-xl">
-                <div className="flex items-center gap-2 w-full md:w-auto ml-auto">
-                    <Button onClick={() => handleAddEvent()} size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline">{t('planer.add_event')}</span>
-                    </Button>
+            {/* Tabs & Actions */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-1 w-full">
+                <div className="flex">
+                    <button
+                        onClick={() => setActiveTab('calendar')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'calendar' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="w-4 h-4" />
+                        {t('planer.tab_calendar') || 'Calendar'}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('list')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <List className="w-4 h-4" />
+                        {t('planer.tab_list') || 'List'}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('timeline')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'timeline' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <Activity className="w-4 h-4" />
+                        {t('planer.tab_timeline') || 'Timeline'}
+                    </button>
                 </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex p-1 bg-muted/50 rounded-lg w-fit">
-                <button
-                    onClick={() => setActiveTab('calendar')}
-                    className={cn(
-                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                        activeTab === 'calendar' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    <CalendarIcon className="w-4 h-4" />
-                    {t('planer.tab_calendar') || 'Calendar'}
-                </button>
-                <button
-                    onClick={() => setActiveTab('list')}
-                    className={cn(
-                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                        activeTab === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    <List className="w-4 h-4" />
-                    {t('planer.tab_list') || 'List'}
-                </button>
-                <button
-                    onClick={() => setActiveTab('timeline')}
-                    className={cn(
-                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                        activeTab === 'timeline' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    <Activity className="w-4 h-4" />
-                    {t('planer.tab_timeline') || 'Timeline'}
-                </button>
+                <Button onClick={() => handleAddEvent()} size="sm" className="gap-2 ml-2">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('planer.add_event')}</span>
+                </Button>
             </div>
 
             {/* Calendar Grid */}

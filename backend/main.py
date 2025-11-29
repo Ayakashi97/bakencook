@@ -949,16 +949,10 @@ def assign_role(user_id: str, role_name: str, db: Session = Depends(get_db), cur
         
     user.role_id = role.id
     # Sync the enum role for backward compatibility if it matches standard ones
-    if role.name.lower() in ["admin", "user"]:
-         # Only set admin enum if the role name is explicitly "Admin" (case insensitive check above but enum is lowercase)
-         pass 
-         # Actually, let's keep the enum as 'user' for custom roles, so they rely on permissions.
-         # Only if they are assigned the 'Admin' role, we might want to give them superuser powers?
-         # For now, let's NOT touch the enum unless it's strictly necessary.
-         # But wait, get_current_admin_user relies on the enum.
-         # If I assign "Editor" role, the enum is still "user", so they won't pass get_current_admin_user.
-         # BUT they WILL pass has_permission("manage:recipes").
-         # So this is correct.
+    if role.name.lower() == "admin":
+         user.role = models.UserRole.admin
+    elif role.name.lower() == "user":
+         user.role = models.UserRole.user
     
     db.commit()
     return {"message": "Role assigned"}

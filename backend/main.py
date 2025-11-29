@@ -19,6 +19,7 @@ import shutil
 import uuid
 import secrets
 from email_utils import send_mail
+from email_templates import get_email_template
 
 def get_gemini_api_key(db: Session) -> Optional[str]:
     setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "gemini_api_key").first()
@@ -34,6 +35,18 @@ def get_gemini_api_key(db: Session) -> Optional[str]:
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
+# Migration: Add language column if missing
+try:
+    with engine.connect() as conn:
+        # Check if column exists (Postgres specific, but try/except works for simple add)
+        # For SQLite/Postgres, attempting to add it will fail if it exists.
+        # We wrap in try/except to ignore "duplicate column" error.
+        conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR DEFAULT 'en'"))
+        conn.commit()
+except Exception as e:
+    # print(f"Migration note: {e}")
+    pass
 
 # Seed Roles
 def seed_roles():
@@ -428,7 +441,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         hashed_password=hashed_password, 
         role=role_enum, 
         role_id=role_id,
-        email=user.email
+        email=user.email,
+        language=user.language or "en"
     )
     
     # Check registration setting
@@ -463,7 +477,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         app_name = app_name.strip()
         
         if user.email:
-            send_mail(db, user.email, f"Verify your email - {app_name}", f"Your verification code is: <b>{token}</b>")
+            tmpl = get_email_template('verification', new_user.language, {'code': token, 'app_name': app_name})
+            send_mail(db, user.email, tmpl['subject'], tmpl['body'])
     else:
         new_user.is_verified = True
 
@@ -528,7 +543,8 @@ def resend_verification(email: Optional[str] = None, username: Optional[str] = N
         db.add(ver_token)
     db.commit()
     
-    send_mail(db, user.email, "Verify your email", f"Your verification code is: <b>{token}</b>")
+    tmpl = get_email_template('verification', user.language, {'code': token})
+    send_mail(db, user.email, tmpl['subject'], tmpl['body'])
     return {"message": "Verification email sent"}
 
 @app.post("/token", response_model=schemas.Token)
@@ -1310,21 +1326,15 @@ def bulk_create_ingredients(ingredients: List[schemas.IngredientItemCreate], db:
 
 
 
-def send_verification_email(to_email: str, code: str, db: Session):
+
+def send_verification_email(to_email: str, code: str, db: Session, language: str = "en"):
     # Get app name
     app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
     app_name = app_name_setting.value if app_name_setting else "BakeAssist"
     app_name = app_name.strip()
     
-    subject = f"Verify your email - {app_name}"
-    body = f"""
-    <h2>Verify your email address</h2>
-    <p>You have requested to change your email address for {app_name}.</p>
-    <p>Your verification code is:</p>
-    <h1 style="font-size: 32px; letter-spacing: 5px;">{code}</h1>
-    <p>If you did not request this change, please ignore this email.</p>
-    """
-    send_mail(db, to_email, subject, body)
+    tmpl = get_email_template('email_change', language, {'code': code, 'app_name': app_name})
+    send_mail(db, to_email, tmpl['subject'], tmpl['body'])
 
 @app.put("/users/me/settings", response_model=schemas.User)
 def update_settings(
@@ -1373,7 +1383,7 @@ def update_settings(
             
             # Send Email
             try:
-                send_verification_email(settings.email, code, db)
+                send_verification_email(settings.email, code, db, current_user.language)
             except Exception as e:
                 print(f"Failed to send verification email: {e}")
                 # If email fails, we should probably rollback or warn. 
@@ -1391,6 +1401,9 @@ def update_settings(
             return current_user
              
         current_user.email = settings.email
+
+    if settings.language:
+        current_user.language = settings.language
 
     current_user.session_duration_minutes = settings.session_duration_minutes
     db.commit()
@@ -1434,13 +1447,8 @@ def confirm_email_change(
             app_name = app_name_setting.value if app_name_setting else "BakeAssist"
             app_name = app_name.strip()
             
-            subject = f"Security Alert: Email Changed - {app_name}"
-            body = f"""
-            <h2>Your email address has been changed</h2>
-            <p>The email address for your account on {app_name} has been changed to {confirm.email}.</p>
-            <p>If you did not authorize this change, please contact the administrator immediately.</p>
-            """
-            send_mail(db, old_email, subject, body)
+            tmpl = get_email_template('security_alert_email_change', current_user.language, {'new_email': confirm.email, 'app_name': app_name})
+            send_mail(db, old_email, tmpl['subject'], tmpl['body'])
         except Exception as e:
             print(f"Failed to send notification to old email: {e}")
     

@@ -212,7 +212,7 @@ export default function Profile() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: (data: { session_duration_minutes: number, email?: string, password?: string }) => api.put('/users/me/settings', data),
+        mutationFn: (data: { session_duration_minutes: number, email?: string, password?: string }) => api.put('/users/me/settings', { ...data, language: i18n.language }),
         onSuccess: (data) => {
             if (data.data.verification_pending) {
                 // Email verification required

@@ -19,6 +19,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     email: EmailStr # Make email mandatory for registration
+    language: Optional[str] = "en"
 
 class UserChangePassword(BaseModel):
     old_password: str
@@ -87,6 +88,7 @@ class User(UserBase):
     role_rel: Optional[Role] = None
     session_duration_minutes: int = 60
     api_key: Optional[str] = None
+    language: str = "en"
 
     class Config:
         from_attributes = True
@@ -95,6 +97,7 @@ class UserUpdateSettings(BaseModel):
     session_duration_minutes: int
     email: Optional[EmailStr] = None
     password: Optional[str] = None
+    language: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str

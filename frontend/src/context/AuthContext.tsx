@@ -12,6 +12,7 @@ export interface User {
         permissions: string[];
     };
     session_duration_minutes?: number;
+    language?: string;
 }
 
 interface AuthContextType {

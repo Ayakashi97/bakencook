@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { Timeline, TimelineEvent } from '../components/Timeline';
 
 interface Schedule {
     id: string;
@@ -131,40 +132,71 @@ export default function Planer() {
         schedules.forEach(schedule => {
             // Parse base times
             const targetTime = parseISO(schedule.target_time);
-            // Default duration for custom events or recipes in month view (e.g. 1 hour)
 
+            // ALWAYS show single block for recipes in the main calendar grid
+            // regardless of view mode (month/week/day)
+            events.push({
+                id: schedule.id,
+                title: schedule.recipe ? schedule.recipe.title : (schedule.title || 'Event'),
+                start: subDays(targetTime, 0),
+                end: targetTime,
+                type: schedule.event_type === 'baking' ? 'recipe' : 'custom',
+                recipeId: schedule.recipe_id,
+                scheduleId: schedule.id,
+                isStep: false
+            });
+        });
 
-            if (view === 'month' || view === 'list' || schedule.event_type === 'custom' || !schedule.recipe) {
-                // Month view OR Custom Event OR Missing Recipe Data -> Show single block
+        return events;
+    };
+
+    const getTimelineEvents = () => {
+        if (!schedules) return [];
+        const events: TimelineEvent[] = [];
+
+        // Filter schedules relevant to current view
+        const relevantSchedules = schedules.filter(s => {
+            const time = parseISO(s.target_time);
+            if (view === 'day') {
+                return isSameDay(time, currentDate);
+            } else if (view === 'week') {
+                const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+                const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+                return time >= start && time <= end;
+            }
+            return false;
+        });
+
+        relevantSchedules.forEach(schedule => {
+            const targetTime = parseISO(schedule.target_time);
+
+            if (schedule.event_type === 'custom' || !schedule.recipe) {
+                // Add custom events to timeline too
                 events.push({
                     id: schedule.id,
-                    title: schedule.recipe ? schedule.recipe.title : (schedule.title || 'Event'),
-                    start: subDays(targetTime, 0), // simplified, ideally use start_time if available
+                    title: schedule.title || 'Event',
+                    start: targetTime, // Simplified
                     end: targetTime,
-                    type: schedule.event_type === 'baking' ? 'recipe' : 'custom',
-                    recipeId: schedule.recipe_id,
+                    type: 'custom',
                     scheduleId: schedule.id,
                     isStep: false
                 });
             } else {
-                // Week/Day View AND Recipe -> Expand Steps
-                // We work backwards from target_time
+                // Expand steps for Timeline
                 let currentTime = targetTime;
 
-                // Flatten steps from all chapters
-                // Let's assume chapters are ordered, and steps within chapters are ordered.
                 const sortedSteps = schedule.recipe.chapters
                     .sort((a, b) => a.order_index - b.order_index)
                     .flatMap(ch => ch.steps.sort((a, b) => a.order_index - b.order_index))
-                    .reverse(); // Process backwards
+                    .reverse();
 
                 sortedSteps.forEach((step, index) => {
                     let duration = step.duration_min;
 
-                    // Apply Temperature Adjustment for Passive Steps
+                    // Apply Temperature Adjustment
                     if (step.type === 'passive') {
                         const refTemp = schedule.recipe?.reference_temperature || 20;
-                        const realTemp = (schedule as any).real_temperature || refTemp; // Use schedule's real temp if available
+                        const realTemp = (schedule as any).real_temperature || refTemp;
                         const factor = Math.pow(0.5, (realTemp - refTemp) / 5);
                         duration = Math.round(step.duration_min * factor);
                     }
@@ -174,13 +206,14 @@ export default function Planer() {
 
                     events.push({
                         id: `${schedule.id}_step_${step.id || index}`,
-                        title: step.description, // Or step name if available? Step only has description.
+                        title: step.description,
                         start: startTime,
                         end: currentTime,
-                        type: step.type, // 'active', 'passive', 'baking'
+                        type: step.type,
                         recipeId: schedule.recipe_id,
                         scheduleId: schedule.id,
-                        isStep: true
+                        isStep: true,
+                        recipeTitle: schedule.recipe?.title
                     });
 
                     currentTime = startTime;
@@ -188,8 +221,10 @@ export default function Planer() {
             }
         });
 
-        return events;
+        return events.sort((a, b) => a.start.getTime() - b.start.getTime());
     };
+
+    const timelineEvents = getTimelineEvents();
 
     const processedEvents = getProcessedEvents();
 
@@ -645,6 +680,11 @@ export default function Planer() {
                     </div>
                 )}
             </div>
+
+            {/* Timeline View */}
+            {(view === 'week' || view === 'day') && (
+                <Timeline events={timelineEvents} />
+            )}
 
 
 

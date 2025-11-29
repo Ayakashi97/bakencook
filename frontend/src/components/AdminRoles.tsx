@@ -189,7 +189,7 @@ export default function AdminRoles() {
                         <Button
                             onClick={handleCreate}
                             size="sm"
-                            className="h-9 w-9 p-0 rounded-md shadow-sm"
+                            className="h-9 w-9 p-0 rounded-md shadow-sm shrink-0"
                             title={t('admin.add_role')}
                         >
                             <Plus className="h-4 w-4" />

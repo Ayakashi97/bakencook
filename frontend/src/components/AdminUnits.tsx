@@ -327,7 +327,7 @@ export default function AdminUnits() {
 
                             <button
                                 onClick={handleCreate}
-                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm"
+                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm shrink-0"
                                 title={t('admin.add_unit')}
                             >
                                 <Plus className="h-4 w-4" />

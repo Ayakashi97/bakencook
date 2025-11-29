@@ -5,7 +5,6 @@ import { api, RecipePage } from '../lib/api';
 import { Clock, Users, ChefHat, Search, Star, Heart, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
-import { PageHeader } from '../components/ui/PageHeader';
 import { Pagination } from '../components/Pagination';
 
 export default function Dashboard() {

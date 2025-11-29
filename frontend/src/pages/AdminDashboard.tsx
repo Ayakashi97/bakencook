@@ -14,7 +14,6 @@ import AdminSystem from '../components/AdminSystem';
 import SystemStatus from '../components/SystemStatus';
 import { Modal } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
-import { PageHeader } from '../components/ui/PageHeader';
 
 interface User {
     id: string;

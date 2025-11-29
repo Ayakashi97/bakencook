@@ -84,7 +84,7 @@ export default function Planer() {
         },
     });
 
-    const { data: schedules, isLoading, refetch } = useQuery<Schedule[]>({
+    const { data: schedules, isLoading } = useQuery<Schedule[]>({
         queryKey: ['schedules', view, currentDate.toISOString(), activeTab, showPastEvents], // Refetch when view/date/tab changes
         queryFn: async () => {
             // Calculate range based on view

@@ -1567,6 +1567,13 @@ def read_public_settings(db: Session = Depends(get_db)):
         result["enable_registration"] = "true"
     return result
 
+def mask_sensitive_value(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 3:
+        return "****"
+    return value[:3] + "****"
+
 @app.get("/admin/settings", response_model=Dict[str, Any])
 def read_system_settings(
     db: Session = Depends(get_db),
@@ -1574,10 +1581,15 @@ def read_system_settings(
 ):
     settings = db.query(models.SystemSetting).all()
     result = {}
+    sensitive_keys = ["smtp_password", "gemini_api_key"]
+    
     for s in settings:
         val = s.value
         if s.key == "debug_mode":
             val = s.value.lower() == "true"
+        elif s.key in sensitive_keys and val:
+            val = mask_sensitive_value(val)
+            
         result[s.key] = val
     return result
 
@@ -1587,6 +1599,8 @@ def update_system_settings(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
+    sensitive_keys = ["smtp_password", "gemini_api_key"]
+    
     for key, value in settings_update.settings.items():
         # Handle special cases or conversions
         str_value = str(value)
@@ -1598,28 +1612,28 @@ def update_system_settings(
             from logger import set_log_level
             set_log_level(str_value == "true")
             
+        # Check if this is a sensitive key and if the value is the masked version
+        if key in sensitive_keys:
+            existing_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
+            if existing_setting and existing_setting.value:
+                masked_existing = mask_sensitive_value(existing_setting.value)
+                # If the incoming value matches the masked version of the existing value,
+                # it means the user didn't change it (just sent back what they saw).
+                # So we skip updating it.
+                if str_value == masked_existing:
+                    continue
+
         setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
         if setting:
             setting.value = str_value
         else:
-            setting = models.SystemSetting(key=key, value=str_value)
-            db.add(setting)
+            new_setting = models.SystemSetting(key=key, value=str_value)
+            db.add(new_setting)
             
     db.commit()
     
-    # Return updated settings
-    all_settings = db.query(models.SystemSetting).all()
-    # Convert debug_mode back to boolean for frontend consistency if needed, 
-    # but the response model is Dict[str, Any] now (I should update that too)
-    
-    result = {}
-    for s in all_settings:
-        val = s.value
-        if s.key == "debug_mode":
-            val = s.value.lower() == "true"
-        result[s.key] = val
-        
-    return result
+    # Return updated settings (masked)
+    return read_system_settings(db, current_user)
 
 @app.get("/admin/logs")
 def get_system_logs(
@@ -2381,11 +2395,21 @@ def test_email_config(
         import email_utils
         
         # Construct config dict from request
+        smtp_password = request.smtp_password
+        
+        # Check if password is masked and needs to be replaced with stored value
+        # We need to fetch the stored password to compare
+        stored_smtp_pass_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "smtp_password").first()
+        if stored_smtp_pass_setting and stored_smtp_pass_setting.value:
+            masked_stored = mask_sensitive_value(stored_smtp_pass_setting.value)
+            if smtp_password == masked_stored:
+                smtp_password = stored_smtp_pass_setting.value
+        
         smtp_config = {
             "smtp_server": request.smtp_server,
             "smtp_port": request.smtp_port,
             "smtp_user": request.smtp_user,
-            "smtp_password": request.smtp_password,
+            "smtp_password": smtp_password,
             "sender_email": request.sender_email
         }
         

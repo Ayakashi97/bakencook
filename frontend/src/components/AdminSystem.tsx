@@ -344,7 +344,7 @@ function AISettings() {
 }
 
 function EmailSettings() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { settings, isLoading, updateSettingsMutation } = useSettings();
     const [formData, setFormData] = useState({
         enable_email_verification: 'false',
@@ -355,6 +355,7 @@ function EmailSettings() {
         smtp_from_email: '',
         smtp_tls: 'true'
     });
+    const [showSmtpPassword, setShowSmtpPassword] = useState(false);
 
 
     const testEmailMutation = useMutation({
@@ -436,14 +437,21 @@ function EmailSettings() {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">{t('admin.smtp_password', 'SMTP Password')}</label>
-                        <form onSubmit={(e) => e.preventDefault()}>
+                        <form className="relative" onSubmit={(e) => e.preventDefault()}>
                             <input
-                                type="password"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                type={showSmtpPassword ? "text" : "password"}
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm pr-10"
                                 value={formData.smtp_password}
                                 onChange={(e) => setFormData({ ...formData, smtp_password: e.target.value })}
                                 autoComplete="new-password"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                            >
+                                {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                         </form>
                     </div>
 

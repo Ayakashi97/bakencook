@@ -25,6 +25,8 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - ./CHANGELOG.md:/CHANGELOG.md
+      - ./.git:/.git
     environment:
       DATABASE_URL: ${DATABASE_URL}
       PLAYWRIGHT_WS_ENDPOINT: ${PLAYWRIGHT_WS_ENDPOINT}

@@ -70,6 +70,8 @@ if [ -n "$BACKEND_SERVICE_NAME" ]; then
             echo "Service stopped."
         elif sudo -n systemctl stop "$BACKEND_SERVICE_NAME" --no-ask-password 2>/dev/null; then
             echo "Service stopped (with sudo)."
+        elif sudo systemctl stop "$BACKEND_SERVICE_NAME"; then
+            echo "Service stopped (with interactive sudo)."
         else
             echo "Warning: Could not stop service automatically. Migration might hang if DB is locked."
         fi

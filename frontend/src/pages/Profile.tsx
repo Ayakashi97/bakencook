@@ -145,24 +145,24 @@ const OverviewTab = ({
                         <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
                             <Utensils className="w-5 h-5 text-orange-500 mb-1" />
                             <span className="text-xl font-bold">{recipeCount}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Recipes</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('profile.stats.recipes')}</span>
                         </div>
                         <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
                             <div className="flex items-center gap-1 text-yellow-500 mb-1">
                                 <span className="w-5 h-5 flex items-center justify-center">★</span>
                             </div>
                             <span className="text-xl font-bold">{user?.average_rating || '0.0'}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Rating</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('profile.stats.avg_rating')}</span>
                         </div>
                         <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
                             <Clock className="w-5 h-5 text-blue-500 mb-1" />
                             <span className="text-sm font-bold mt-1">{memberSince}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Member Since</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{t('profile.stats.member_since')}</span>
                         </div>
                         <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
                             <Globe className="w-5 h-5 text-purple-500 mb-1" />
                             <span className="text-sm font-bold mt-1 uppercase">{i18n.language?.split('-')[0] || 'EN'}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Language</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{t('profile.stats.language')}</span>
                         </div>
                     </div>
                 </div>
@@ -172,13 +172,13 @@ const OverviewTab = ({
                 {/* Account Details */}
                 <div className="glass-card rounded-xl p-6 space-y-6">
                     <h3 className="font-semibold flex items-center gap-2 border-b border-white/10 pb-3">
-                        <User className="w-4 h-4" /> Account Details
+                        <User className="w-4 h-4" /> {t('profile.account_details')}
                     </h3>
 
                     {/* Username */}
                     <div>
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
-                            Username
+                            {t('profile.username')}
                         </label>
                         <div className="flex gap-2">
                             <input
@@ -310,7 +310,7 @@ const OverviewTab = ({
                     {/* Application Settings */}
                     <div className="glass-card rounded-xl p-6">
                         <h3 className="font-semibold flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
-                            <Settings className="w-4 h-4" /> Application Settings
+                            <Settings className="w-4 h-4" /> {t('profile.app_settings')}
                         </h3>
 
                         {/* Session Duration */}
@@ -581,7 +581,7 @@ export default function Profile() {
     };
 
     const ApiTab = () => {
-        //const { t } = useTranslation();
+        const { t } = useTranslation();
         const { data: apiStatus, isLoading: isLoadingKey, refetch } = useQuery({
             queryKey: ['api-key'],
             queryFn: async () => {
@@ -614,11 +614,11 @@ export default function Profile() {
             <div className="space-y-6">
                 <div className="glass-card rounded-xl p-6">
                     <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <KeyRound className="h-5 w-5" /> API Access
+                        <KeyRound className="h-5 w-5" /> {t('profile.tabs.api')}
                     </h2>
                     <p className="text-sm text-muted-foreground mb-6">
-                        Use this API Key to authenticate automated requests (e.g., from iOS Shortcuts).
-                        Include it in the <code>X-API-Key</code> header along with Basic Auth (Username/Password).
+                        {t('profile.api.desc')}
+                        {/* Include it in the <code>X-API-Key</code> header along with Basic Auth (Username/Password). */}
                     </p>
 
                     {isLoadingKey ? (
@@ -631,10 +631,10 @@ export default function Profile() {
                                 <div className={`w-3 h-3 rounded-full ${apiStatus?.has_api_key ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`} />
                                 <div>
                                     <p className="font-medium text-sm">
-                                        {apiStatus?.has_api_key ? "API Key Active" : "No API Key Active"}
+                                        {apiStatus?.has_api_key ? t('profile.api.active') : t('profile.api.inactive')}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {apiStatus?.has_api_key ? "Your account is ready for automation." : "Generate a key to start using automation."}
+                                        {apiStatus?.has_api_key ? t('profile.api.active_desc') : t('profile.api.inactive_desc')}
                                     </p>
                                 </div>
                             </div>
@@ -644,7 +644,7 @@ export default function Profile() {
                                 <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-3">
                                     <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 font-medium text-sm">
                                         <AlertTriangle className="h-4 w-4" />
-                                        Save this key now! It will not be shown again.
+                                        {t('profile.api.save_warning')}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="flex-1 bg-background/50 p-3 rounded-md font-mono text-sm break-all border border-white/10">
@@ -674,7 +674,7 @@ export default function Profile() {
                                     className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-sm"
                                 >
                                     {generateKeyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                                    {apiStatus?.has_api_key ? "Regenerate API Key" : "Generate API Key"}
+                                    {apiStatus?.has_api_key ? t('profile.api.regenerate') : t('profile.api.generate')}
                                 </button>
                             </div>
                         </div>
@@ -724,7 +724,7 @@ export default function Profile() {
                         tabs={[
                             { id: 'overview', label: t('profile.tabs.overview'), icon: User },
                             { id: 'sessions', label: t('profile.tabs.sessions'), icon: List },
-                            { id: 'api', label: "API Access", icon: KeyRound },
+                            { id: 'api', label: t('profile.tabs.api'), icon: KeyRound },
                             { id: 'danger', label: t('profile.tabs.danger'), icon: AlertTriangle },
                         ]}
                     />

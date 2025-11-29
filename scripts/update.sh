@@ -79,23 +79,30 @@ if [ -f "alembic.ini" ]; then
 fi
 
 # 4. Update Frontend
-echo "Updating Frontend..."
-cd "$FRONTEND_DIR"
-# Install node dependencies
-npm install
-# Build frontend
-npm run build
+if [ -f "/.dockerenv" ]; then
+    echo "Running in Docker: Skipping frontend build (handled by frontend container/hot-reload)."
+else
+    echo "Updating Frontend..."
+    cd "$FRONTEND_DIR"
+    if command -v npm &> /dev/null; then
+        npm install
+        npm run build
+    else
+        echo "Warning: npm not found. Skipping frontend update."
+    fi
+fi
 
 echo "Update completed successfully."
 
-# Restart Service if configured
-if [ -n "$BACKEND_SERVICE_NAME" ]; then
+# Restart Service
+if [ -f "/.dockerenv" ]; then
+    echo "Running in Docker: Scheduling container restart in 5 seconds..."
+    (sleep 5; kill 1) &
+elif [ -n "$BACKEND_SERVICE_NAME" ]; then
     echo "Restarting service: $BACKEND_SERVICE_NAME..."
     if command -v systemctl &> /dev/null; then
-        # Try without sudo first (e.g. user service)
         if systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
-            echo "Service restarted (without sudo)."
-        # Try with non-interactive sudo
+            echo "Service restarted."
         elif sudo -n systemctl restart "$BACKEND_SERVICE_NAME" 2>/dev/null; then
             echo "Service restarted (with sudo)."
         else
@@ -104,11 +111,9 @@ if [ -n "$BACKEND_SERVICE_NAME" ]; then
             echo "To enable auto-restart, configure NOPASSWD in sudoers for this command:"
             echo "  $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart $BACKEND_SERVICE_NAME"
             echo "Please restart '$BACKEND_SERVICE_NAME' manually to apply changes."
-            # Do NOT exit with error here, just warn
         fi
     else
-        echo "Warning: systemctl not found. Cannot restart service automatically."
-        echo "Please restart '$BACKEND_SERVICE_NAME' manually."
+        echo "Warning: systemctl not found."
     fi
 else
     echo "Please restart the application services."

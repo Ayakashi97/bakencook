@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Plus, Loader2, Edit2, Save, Scale, AlertTriangle, Upload, Download, Search } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2, Save, Scale, AlertTriangle, Upload, Download, Search, MoreHorizontal, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 
@@ -25,6 +25,7 @@ export default function AdminUnits() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [isDirty, setIsDirty] = useState(false);
     const [showDiscardModal, setShowDiscardModal] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -275,37 +276,72 @@ export default function AdminUnits() {
                             <input
                                 type="text"
                                 placeholder={t('admin.search') || "Search..."}
-                                className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center gap-2 text-xs font-medium cursor-pointer transition-colors bg-background/30">
-                                <Upload className="h-3.5 w-3.5" />
-                                {t('admin.import')}
-                                <input
-                                    type="file"
-                                    accept=".json"
-                                    className="hidden"
-                                    onChange={handleImport}
-                                />
-                            </label>
-                            <button
-                                onClick={handleExport}
-                                className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center gap-2 text-xs font-medium transition-colors bg-background/30"
-                            >
-                                <Download className="h-3.5 w-3.5" />
-                                {t('admin.export')}
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowMenu(!showMenu)}
+                                    className="h-9 w-9 border rounded-md hover:bg-accent/50 flex items-center justify-center transition-colors bg-background/30"
+                                >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </button>
+
+                                {showMenu && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                                        <div className="absolute right-0 top-full mt-2 w-48 rounded-md border bg-popover p-1 shadow-md z-20 animate-in fade-in zoom-in-95 duration-100">
+                                            <label className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer">
+                                                <Upload className="h-4 w-4" />
+                                                {t('admin.import')}
+                                                <input
+                                                    type="file"
+                                                    accept=".json"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        handleImport(e);
+                                                        setShowMenu(false);
+                                                    }}
+                                                />
+                                            </label>
+                                            <button
+                                                onClick={() => {
+                                                    handleExport();
+                                                    setShowMenu(false);
+                                                }}
+                                                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground text-left"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                {t('admin.export')}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
                             <button
                                 onClick={handleCreate}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2 text-xs font-medium transition-colors shadow-sm"
+                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm shrink-0"
+                                title={t('admin.add_unit')}
                             >
-                                <Plus className="h-3.5 w-3.5" /> {t('admin.add_unit')}
+                                <Plus className="h-4 w-4" />
                             </button>
                         </div>
                     </div>

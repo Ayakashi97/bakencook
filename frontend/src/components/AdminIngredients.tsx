@@ -3,22 +3,16 @@ import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle, MoreHorizontal, Utensils, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 import { IngredientFormModal } from './IngredientFormModal';
 
 interface Ingredient {
     id: number;
-    name: any; // JSON: { "en": { "singular": "...", "plural": "..." }, "de": ... }
-    linked_recipe_id?: string; // UUID string
+    name: any; // JSON: {"en": {"singular": "...", "plural": "..." }, "de": ... }
     default_unit_id?: number;
     is_verified?: boolean;
-}
-
-interface Recipe {
-    id: string; // UUID
-    title: string; // Changed from name to title to match backend
 }
 
 interface Unit {
@@ -30,13 +24,13 @@ interface Unit {
 export default function AdminIngredients() {
     const { t, i18n } = useTranslation();
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-    const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [units, setUnits] = useState<Unit[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [showMenu, setShowMenu] = useState(false);
 
 
     // Pagination state
@@ -46,7 +40,6 @@ export default function AdminIngredients() {
 
     useEffect(() => {
         loadIngredients();
-        loadRecipes();
         loadUnits();
     }, []);
 
@@ -65,23 +58,6 @@ export default function AdminIngredients() {
             setIngredients([]);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const loadRecipes = async () => {
-        try {
-            const res = await api.get('/recipes', { params: { limit: 1000 } });
-            if (res.data && Array.isArray(res.data.items)) {
-                setRecipes(res.data.items);
-            } else if (Array.isArray(res.data)) {
-                setRecipes(res.data);
-            } else {
-                console.error('Recipes data format invalid:', res.data);
-                setRecipes([]);
-            }
-        } catch (error) {
-            console.error('Failed to load recipes', error);
-            setRecipes([]);
         }
     };
 
@@ -242,7 +218,7 @@ export default function AdminIngredients() {
             <div className="glass-card rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white/5 backdrop-blur-sm">
                     <h2 className="font-semibold flex items-center gap-2 shrink-0">
-                        <Search className="h-5 w-5" /> {t('admin.ingredients_title')}
+                        <Utensils className="h-5 w-5" /> {t('admin.ingredients_title')}
                     </h2>
                     <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto justify-end">
                         <div className="relative w-full sm:max-w-xs">
@@ -250,37 +226,72 @@ export default function AdminIngredients() {
                             <input
                                 type="text"
                                 placeholder={t('admin.search') || "Search..."}
-                                className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <label className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors bg-background/30 flex-1 sm:flex-none">
-                                <Upload className="h-3.5 w-3.5" />
-                                {t('admin.import')}
-                                <input
-                                    type="file"
-                                    accept=".json"
-                                    className="hidden"
-                                    onChange={handleImport}
-                                />
-                            </label>
-                            <button
-                                onClick={handleExport}
-                                className="h-9 px-3 border rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 text-xs font-medium transition-colors bg-background/30 flex-1 sm:flex-none"
-                            >
-                                <Download className="h-3.5 w-3.5" />
-                                {t('admin.export')}
-                            </button>
+                        <div className="flex items-center gap-2 w-full sm:w-auto relative">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowMenu(!showMenu)}
+                                    className="h-9 w-9 border rounded-md hover:bg-accent/50 flex items-center justify-center transition-colors bg-background/30"
+                                >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </button>
+
+                                {showMenu && (
+                                    <>
+                                        <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                                        <div className="absolute right-0 top-full mt-2 w-48 rounded-md border bg-popover p-1 shadow-md z-20 animate-in fade-in zoom-in-95 duration-100">
+                                            <label className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer">
+                                                <Upload className="h-4 w-4" />
+                                                {t('admin.import')}
+                                                <input
+                                                    type="file"
+                                                    accept=".json"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        handleImport(e);
+                                                        setShowMenu(false);
+                                                    }}
+                                                />
+                                            </label>
+                                            <button
+                                                onClick={() => {
+                                                    handleExport();
+                                                    setShowMenu(false);
+                                                }}
+                                                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground text-left"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                {t('admin.export')}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
                             <button
                                 onClick={handleCreate}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-xs font-medium transition-colors shadow-sm flex-1 sm:flex-none"
+                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm shrink-0"
+                                title={t('admin.add_ingredient')}
                             >
-                                <Plus className="h-3.5 w-3.5" /> {t('admin.add_ingredient')}
+                                <Plus className="h-4 w-4" />
                             </button>
                         </div>
                     </div>
@@ -296,7 +307,6 @@ export default function AdminIngredients() {
                     }}
                     initialData={editingId ? ingredients.find(i => i.id === editingId) : undefined}
                     units={units}
-                    recipes={recipes}
                 />
 
                 {showDeleteModal && (
@@ -333,7 +343,7 @@ export default function AdminIngredients() {
                             <tr>
                                 <th className="px-6 py-3">{t('admin.ingredient_name')}</th>
                                 <th className="px-6 py-3">{t('admin.default_unit')}</th>
-                                <th className="px-6 py-3">{t('admin.linked_recipe')}</th>
+                                {/* Removed Linked Recipe Column */}
                                 <th className="px-6 py-3">{t('admin.status')}</th>
                                 <th className="px-6 py-3 text-right">{t('admin.actions')}</th>
                             </tr>
@@ -341,13 +351,13 @@ export default function AdminIngredients() {
                         <tbody className="divide-y divide-white/10">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <td colSpan={4} className="h-24 text-center text-muted-foreground">
                                         {t('common.loading')}
                                     </td>
                                 </tr>
                             ) : ingredients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <td colSpan={4} className="h-24 text-center text-muted-foreground">
                                         {t('admin.no_ingredients')}
                                     </td>
                                 </tr>
@@ -358,9 +368,7 @@ export default function AdminIngredients() {
                                         <td className="px-6 py-4 text-muted-foreground">
                                             {getUnitName(ingredient.default_unit_id)}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            {recipes.find(r => r && r.id === ingredient.linked_recipe_id)?.title || '-'}
-                                        </td>
+                                        {/* Removed Linked Recipe Cell */}
                                         <td className="px-6 py-4">
                                             {ingredient.is_verified ? (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
@@ -429,7 +437,7 @@ export default function AdminIngredients() {
                                 </div>
                                 <div className="text-sm text-muted-foreground flex justify-between">
                                     <span>{t('admin.default_unit')}: {getUnitName(ingredient.default_unit_id)}</span>
-                                    <span>{recipes.find(r => r && r.id === ingredient.linked_recipe_id)?.title || '-'}</span>
+                                    {/* Removed Linked Recipe Info */}
                                 </div>
                                 <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
                                     {!ingredient.is_verified && (

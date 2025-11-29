@@ -89,6 +89,9 @@ class User(UserBase):
     session_duration_minutes: int = 60
     api_key: Optional[str] = None
     language: str = "en"
+    created_at: Optional[datetime] = None
+    average_rating: Optional[float] = 0.0
+    rating_count: Optional[int] = 0
 
     class Config:
         from_attributes = True
@@ -98,6 +101,7 @@ class UserUpdateSettings(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     language: Optional[str] = None
+    username: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str
@@ -291,7 +295,6 @@ class IngredientItemBase(BaseModel):
              return {"en": v, "de": v}
         return v
 
-    linked_recipe_id: Optional[UUID] = None # Changed to UUID to match Recipe.id type
     is_verified: bool = False
 
 class IngredientItemCreate(IngredientItemBase):
@@ -300,7 +303,6 @@ class IngredientItemCreate(IngredientItemBase):
 class IngredientItem(IngredientItemBase):
     id: int
     default_unit: Optional[Unit] = None
-    linked_recipe: Optional['Recipe'] = None  # We need to be careful with circular imports here, maybe use "Recipe" string or a simplified schema
 
     class Config:
         from_attributes = True

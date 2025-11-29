@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api, RecipePage } from '../lib/api';
-import { Clock, Users, ChefHat, Search, Star, Heart, Plus } from 'lucide-react';
+import { Clock, Users, ChefHat, Search, Star, Heart, Plus, Compass, BookOpen, Utensils, Cake, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/Pagination';
+import { GlassTabs } from '../components/ui/GlassTabs';
 
 export default function Dashboard() {
     const { t } = useTranslation();
@@ -55,54 +56,24 @@ export default function Dashboard() {
     return (
         <div className="w-full space-y-6">
             {/* Tabs & Actions */}
-            <div className="flex items-center justify-between border-b mb-6">
-                <div className="flex overflow-x-auto">
-                    <button
-                        onClick={() => { setActiveTab('discover'); setPage(1); }}
-                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'discover'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        {t('dashboard.discover', 'Entdecken')}
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('my_recipes'); setPage(1); }}
-                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'my_recipes'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        {t('dashboard.my_recipes', 'Meine Rezepte')}
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('cooking'); setPage(1); }}
-                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'cooking'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        {t('recipe.type.cooking', 'Kochen')}
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('baking'); setPage(1); }}
-                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'baking'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                            }`}
-                    >
-                        {t('recipe.type.baking', 'Backen')}
-                    </button>
-                </div>
-
-                <div className="px-2 pb-1">
+            {/* Tabs & Actions */}
+            <div className="mb-6">
+                <GlassTabs
+                    activeTab={activeTab}
+                    onChange={(id) => { setActiveTab(id as any); setPage(1); }}
+                    tabs={[
+                        { id: 'discover', label: t('dashboard.discover', 'Entdecken'), icon: Compass },
+                        { id: 'my_recipes', label: t('dashboard.my_recipes', 'Meine Rezepte'), icon: BookOpen },
+                        { id: 'cooking', label: t('recipe.type.cooking', 'Kochen'), icon: Utensils },
+                        { id: 'baking', label: t('recipe.type.baking', 'Backen'), icon: Cake },
+                    ]}
+                >
                     <Link to="/recipe/new">
-                        <Button size="sm">
-                            <Plus className="w-4 h-4 mr-2" />
-                            {t('dashboard.create_btn')}
+                        <Button size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('dashboard.create_btn')}>
+                            <Plus className="w-4 h-4" />
                         </Button>
                     </Link>
-                </div>
+                </GlassTabs>
             </div>
 
             {/* Search & Sort Controls */}
@@ -113,10 +84,19 @@ export default function Dashboard() {
                         <input
                             type="text"
                             placeholder={t('dashboard.search_placeholder', 'Suche nach Rezepten...')}
-                            className="w-full pl-9 pr-4 py-2 border rounded-md bg-background"
+                            className="w-full pl-9 pr-10 py-2 border rounded-md bg-background"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                 </form>

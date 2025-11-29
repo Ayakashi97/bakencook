@@ -86,6 +86,7 @@ class User(Base):
     language = Column(String, default="en") # User's preferred language
     role_id = Column(String, ForeignKey("roles.id"), nullable=True)
     api_key = Column(String, unique=True, nullable=True, index=True) # New API Key field
+    created_at = Column(DateTime, default=datetime.utcnow)
     role_rel = relationship("Role", back_populates="users")
     
     recipes = relationship("Recipe", back_populates="owner")
@@ -244,11 +245,10 @@ class IngredientItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(JSON, nullable=False)  # {"en": "Flour", "de": "Mehl"}
     default_unit_id = Column(Integer, ForeignKey("units.id"), nullable=True)
-    linked_recipe_id = Column(GUID, ForeignKey("recipes.id"), nullable=True) # Corrected type to UUID
     is_verified = Column(Boolean, default=False)
 
     default_unit = relationship("Unit")
-    linked_recipe = relationship("Recipe")
+
 
 class SystemSetting(Base):
     __tablename__ = "system_settings"

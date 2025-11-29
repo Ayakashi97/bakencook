@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Plus, Loader2, Edit2, Save, Lock, AlertTriangle, Search, Shield } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Lock, Shield, Loader2, Save, AlertTriangle } from 'lucide-react';
+import { Button } from './ui/Button';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 
@@ -108,7 +110,7 @@ export default function AdminRoles() {
         setIsSaving(true);
         try {
             if (editingId) {
-                await api.put(`/admin/roles/${editingId}`, formData);
+                await api.put(`/ admin / roles / ${editingId} `, formData);
             } else {
                 await api.post('/admin/roles', formData);
             }
@@ -142,7 +144,7 @@ export default function AdminRoles() {
     const confirmDelete = async () => {
         if (!deletingId) return;
         try {
-            await api.delete(`/admin/roles/${deletingId}`);
+            await api.delete(`/ admin / roles / ${deletingId} `);
             loadRoles();
             setShowDeleteModal(false);
             setDeletingId(null);
@@ -184,12 +186,14 @@ export default function AdminRoles() {
                                 }}
                             />
                         </div>
-                        <button
+                        <Button
                             onClick={handleCreate}
-                            className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium shadow-sm w-full sm:w-auto"
+                            size="sm"
+                            className="h-9 w-9 p-0 rounded-md shadow-sm shrink-0"
+                            title={t('admin.add_role')}
                         >
-                            <Plus className="h-3.5 w-3.5" /> {t('admin.add_role')}
-                        </button>
+                            <Plus className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
 
@@ -346,7 +350,7 @@ export default function AdminRoles() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-bold ${role.user_count > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'}`}>
+                                            <span className={`inline - flex items - center justify - center px - 2 py - 1 rounded - full text - xs font - bold ${role.user_count > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'} `}>
                                                 {role.user_count}
                                             </span>
                                         </td>
@@ -362,7 +366,7 @@ export default function AdminRoles() {
                                                 <button
                                                     onClick={() => handleDeleteClick(role)}
                                                     disabled={role.user_count > 0}
-                                                    className={`p-1.5 rounded-md transition-colors ${role.user_count > 0 ? 'text-muted-foreground cursor-not-allowed opacity-50' : 'text-destructive hover:bg-destructive/10'}`}
+                                                    className={`p - 1.5 rounded - md transition - colors ${role.user_count > 0 ? 'text-muted-foreground cursor-not-allowed opacity-50' : 'text-destructive hover:bg-destructive/10'} `}
                                                     title={role.user_count > 0 ? (t('admin.cannot_delete_role_with_users') || "Cannot delete role with assigned users") : t('admin.delete_role')}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -397,7 +401,7 @@ export default function AdminRoles() {
                                         <button
                                             onClick={() => handleDeleteClick(role)}
                                             disabled={role.user_count > 0}
-                                            className={`p-2 rounded-md ${role.user_count > 0 ? 'text-muted-foreground bg-muted/10' : 'text-destructive bg-destructive/10'}`}
+                                            className={`p - 2 rounded - md ${role.user_count > 0 ? 'text-muted-foreground bg-muted/10' : 'text-destructive bg-destructive/10'} `}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
@@ -412,7 +416,7 @@ export default function AdminRoles() {
                                 </div>
                                 <div className="text-sm text-muted-foreground flex items-center justify-between">
                                     <span className="opacity-70">{t('admin.user_count') || "Users"}:</span>
-                                    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold ${role.user_count > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'}`}>
+                                    <span className={`inline - flex items - center justify - center px - 2 py - 0.5 rounded - full text - xs font - bold ${role.user_count > 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'} `}>
                                         {role.user_count}
                                     </span>
                                 </div>

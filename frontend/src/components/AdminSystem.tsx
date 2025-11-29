@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Save, RefreshCw, Server, Shield, Mail, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
+import { Save, RefreshCw, Shield, Mail, Globe, Cpu, Eye, EyeOff, Database, Download, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { FaviconPicker } from './FaviconPicker';
@@ -11,50 +11,74 @@ import { Modal } from '../components/Modal';
 
 export default function AdminSystem() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'access' | 'ai' | 'email' | 'backup'>('general');
 
     return (
         <div className="space-y-6">
-            <div className="glass-card rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-sm">
-                    <h2 className="font-semibold flex items-center gap-2 shrink-0">
-                        <Server className="h-5 w-5" /> {t('admin.server_mgmt') || "Server Management"}
-                    </h2>
-                </div>
+            <div className="glass-card rounded-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+                <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-white/5 backdrop-blur-sm">
+                    {/* Mobile Dropdown */}
+                    <div className="md:hidden p-4">
+                        <div className="relative">
+                            <select
+                                value={activeTab}
+                                onChange={(e) => setActiveTab(e.target.value as any)}
+                                className="w-full appearance-none bg-white/5 border border-white/10 rounded-lg py-2 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                                {[
+                                    { id: 'general', label: t('admin.settings_general', 'General') },
+                                    { id: 'access', label: t('admin.settings_access', 'Access & Security') },
+                                    { id: 'ai', label: t('admin.settings_ai', 'AI Features') },
+                                    { id: 'email', label: t('admin.settings_email', 'Email & SMTP') },
+                                    { id: 'backup', label: t('admin.settings_backup', 'Backup & Restore') },
+                                ].map((tab) => (
+                                    <option key={tab.id} value={tab.id} className="bg-gray-900 text-white">
+                                        {tab.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
+                                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
 
-                <div className="border-b border-white/10">
-                    <nav className="flex -mb-px px-6 overflow-x-auto">
+                    {/* Desktop Sidebar */}
+                    <nav className="hidden md:flex flex-col p-2 gap-1">
                         {[
                             { id: 'general', label: t('admin.settings_general', 'General'), icon: Globe },
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
                             { id: 'ai', label: t('admin.settings_ai', 'AI Features'), icon: Cpu },
                             { id: 'email', label: t('admin.settings_email', 'Email & SMTP'), icon: Mail },
+                            { id: 'backup', label: t('admin.settings_backup', 'Backup & Restore'), icon: Database },
                         ].map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
-                                    "group inline-flex items-center py-4 px-4 border-b-2 font-medium text-sm whitespace-nowrap gap-2 transition-colors",
+                                    "group flex items-center justify-start text-left w-full px-3 py-2 text-sm font-medium rounded-md transition-all",
                                     activeTab === tab.id
-                                        ? "border-primary text-primary"
-                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-white/20"
+                                        ? "bg-primary/10 text-primary shadow-sm"
+                                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                                 )}
                             >
-                                <tab.icon className="h-4 w-4" />
+                                <tab.icon className={cn("mr-3 h-4 w-4", activeTab === tab.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                                 {tab.label}
                             </button>
                         ))}
                     </nav>
                 </div>
 
-                <div className="p-6">
+                <div className="flex-1 p-6 bg-background/30">
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'email' && <EmailSettings />}
+                    {activeTab === 'backup' && <BackupSettings />}
                 </div>
             </div>
-
         </div>
     );
 }
@@ -538,15 +562,15 @@ function LogViewerModal({ onClose }: { onClose: () => void }) {
 
     return (
         <Modal title={t('admin.system_logs', 'System Logs')} onClose={onClose}>
-            <div className="space-y-4 w-[800px] max-w-[90vw]">
-                <div className="bg-black/90 text-green-400 font-mono text-xs p-4 rounded-lg h-[500px] overflow-y-auto whitespace-pre-wrap">
+            <div className="space-y-4 w-[1000px] max-w-[95vw]">
+                <div className="bg-black/90 text-green-400 font-mono text-xs p-4 rounded-lg h-[600px] overflow-y-auto whitespace-pre-wrap break-all">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <RefreshCw className="h-6 w-6 animate-spin text-white" />
                         </div>
                     ) : (
                         data?.logs?.map((line: string, i: number) => (
-                            <div key={i}>{line}</div>
+                            <div key={i} className="break-words">{line}</div>
                         )) || <div className="text-gray-500 italic">No logs found</div>
                     )}
                 </div>
@@ -567,5 +591,161 @@ function LogViewerModal({ onClose }: { onClose: () => void }) {
                 </div>
             </div>
         </Modal>
+    );
+}
+
+function BackupSettings() {
+    const { t } = useTranslation();
+    const [isRestoring, setIsRestoring] = useState(false);
+    const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleDownloadBackup = async () => {
+        try {
+            const response = await api.get('/admin/system/backup', {
+                responseType: 'blob'
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Get filename from header or generate default
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `backup_${new Date().toISOString().slice(0, 10)}.zip`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (filenameMatch.length === 2)
+                    filename = filenameMatch[1];
+            }
+
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(t('admin.backup_download_started', 'Backup download started'));
+        } catch (error) {
+            console.error(error);
+            toast.error(t('admin.backup_failed', 'Failed to download backup'));
+        }
+    };
+
+    const handleRestore = async () => {
+        if (!selectedFile) return;
+
+        setIsRestoring(true);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            await api.post('/admin/system/restore', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            toast.success(t('admin.restore_success', 'System restored successfully. Reloading...'));
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.response?.data?.detail || t('admin.restore_failed', 'Restore failed'));
+            setIsRestoring(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6 max-w-xl">
+            {/* Backup Section */}
+            <div className="p-4 rounded-lg border border-white/10 bg-white/5 space-y-4">
+                <div>
+                    <div className="font-medium flex items-center gap-2">
+                        <Database className="h-4 w-4" />
+                        {t('admin.create_backup', 'Create Backup')}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                        {t('admin.create_backup_desc', 'Download a full backup of your database and uploaded files.')}
+                    </div>
+                </div>
+                <button
+                    onClick={handleDownloadBackup}
+                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium"
+                >
+                    <Download className="h-4 w-4" />
+                    {t('admin.download_backup', 'Download Backup')}
+                </button>
+            </div>
+
+            {/* Restore Section */}
+            <div className="p-4 rounded-lg border border-red-500/20 bg-red-500/5 space-y-4">
+                <div>
+                    <div className="font-medium flex items-center gap-2 text-red-500">
+                        <RefreshCw className="h-4 w-4" />
+                        {t('admin.restore_backup', 'Restore Backup')}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                        {t('admin.restore_backup_desc', 'Restore system from a backup file. WARNING: This will overwrite all current data!')}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <input
+                        type="file"
+                        accept=".zip"
+                        ref={fileInputRef}
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border border-input bg-background hover:bg-accent px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                        {selectedFile ? selectedFile.name : t('admin.select_file', 'Select Backup File')}
+                    </button>
+
+                    <button
+                        onClick={() => setShowRestoreConfirm(true)}
+                        disabled={!selectedFile || isRestoring}
+                        className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 disabled:opacity-50 text-sm font-medium flex items-center gap-2"
+                    >
+                        {isRestoring && <RefreshCw className="h-4 w-4 animate-spin" />}
+                        {t('admin.restore', 'Restore')}
+                    </button>
+                </div>
+            </div>
+
+            {showRestoreConfirm && (
+                <Modal title={t('admin.confirm_restore', 'Confirm Restore')} onClose={() => setShowRestoreConfirm(false)}>
+                    <div className="space-y-4">
+                        <div className="p-3 bg-red-500/10 text-red-500 rounded-md text-sm font-medium flex items-center gap-2">
+                            <Activity className="h-4 w-4" />
+                            {t('admin.restore_warning', 'Warning: This action is irreversible!')}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            {t('admin.restore_confirm_msg', 'Are you sure you want to restore this backup? All current data (recipes, users, settings) will be replaced.')}
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowRestoreConfirm(false)}
+                                className="px-4 py-2 rounded-md text-sm font-medium hover:bg-accent"
+                            >
+                                {t('common.cancel')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowRestoreConfirm(false);
+                                    handleRestore();
+                                }}
+                                className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 text-sm font-medium"
+                            >
+                                {t('admin.confirm_restore_btn', 'Yes, Restore System')}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+        </div>
     );
 }

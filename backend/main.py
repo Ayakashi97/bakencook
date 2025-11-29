@@ -696,7 +696,30 @@ def refresh_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/users/me", response_model=schemas.User)
-def read_users_me(current_user: models.User = Depends(get_current_user)):
+def read_users_me(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Calculate stats
+    # Average rating of recipes owned by user
+    # We need to join Recipe and Rating
+    # But Recipe has a relationship 'ratings'
+    
+    # Get all recipe IDs owned by user
+    recipe_ids = db.query(models.Recipe.id).filter(models.Recipe.user_id == current_user.id).all()
+    recipe_ids = [r[0] for r in recipe_ids]
+    
+    if recipe_ids:
+        avg_rating = db.query(func.avg(models.Rating.score)).filter(models.Rating.recipe_id.in_(recipe_ids)).scalar()
+        rating_count = db.query(func.count(models.Rating.score)).filter(models.Rating.recipe_id.in_(recipe_ids)).scalar()
+    else:
+        avg_rating = 0.0
+        rating_count = 0
+        
+    # Attach to user object (schema must have these fields)
+    current_user.average_rating = round(avg_rating, 1) if avg_rating else 0.0
+    current_user.rating_count = rating_count if rating_count else 0
+    
     return current_user
 
 @app.post("/auth/change-password")
@@ -767,14 +790,74 @@ def delete_my_account(
     db.commit()
     return {"message": "Account deleted"}
 
-@app.post("/users/me/api-key")
-def generate_api_key(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
     # Generate new API Key
     import secrets
     import auth
+    
+    new_key = secrets.token_urlsafe(32)
+    current_user.api_key = new_key
+    db.commit()
+    return {"api_key": new_key}
+
+# --- Backup & Restore ---
+
+@app.get("/admin/system/backup")
+def download_backup(
+    background_tasks: BackgroundTasks,
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    from backup import create_backup
+    from fastapi.responses import FileResponse
+    
+    try:
+        zip_path = create_backup()
+        filename = os.path.basename(zip_path)
+        
+        # Schedule cleanup after response
+        def cleanup(path):
+            try:
+                os.remove(path)
+            except:
+                pass
+                
+        background_tasks.add_task(cleanup, zip_path)
+        
+        return FileResponse(
+            path=zip_path, 
+            filename=filename, 
+            media_type='application/zip'
+        )
+    except Exception as e:
+        logger.error(f"Backup failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
+
+@app.post("/admin/system/restore")
+async def upload_restore(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    from backup import restore_backup
+    
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Only .zip files are allowed")
+        
+    # Save uploaded file temporarily
+    temp_zip_path = f"temp_restore_{uuid.uuid4()}.zip"
+    try:
+        with open(temp_zip_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Perform restore
+        restore_backup(temp_zip_path)
+        
+        return {"message": "System restored successfully"}
+        
+    except Exception as e:
+        logger.error(f"Restore failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Restore failed: {str(e)}")
+    finally:
+        if os.path.exists(temp_zip_path):
+            os.remove(temp_zip_path)
     
     # Raw key (shown ONCE to user)
     raw_key = secrets.token_urlsafe(32)
@@ -1299,7 +1382,6 @@ async def create_ingredient(
     new_ing = models.IngredientItem(
         name=name_dict, 
         default_unit_id=ingredient.default_unit_id, 
-        linked_recipe_id=ingredient.linked_recipe_id,
         is_verified=is_verified
     )
     db.add(new_ing)
@@ -1335,7 +1417,6 @@ async def update_ingredient(
     
     ing.name = ingredient_update.name
     ing.default_unit_id = ingredient_update.default_unit_id
-    ing.linked_recipe_id = ingredient_update.linked_recipe_id
     
     db.commit()
     db.refresh(ing)
@@ -1381,7 +1462,7 @@ def bulk_create_units(units: List[schemas.UnitCreate], db: Session = Depends(get
 def bulk_create_ingredients(ingredients: List[schemas.IngredientItemCreate], db: Session = Depends(get_db), current_user: models.User = Depends(has_permission("manage:ingredients"))):
     created_ingredients = []
     for ing in ingredients:
-        new_ing = models.IngredientItem(name=ing.name, default_unit_id=ing.default_unit_id, linked_recipe_id=ing.linked_recipe_id)
+        new_ing = models.IngredientItem(name=ing.name, default_unit_id=ing.default_unit_id)
         db.add(new_ing)
         created_ingredients.append(new_ing)
     
@@ -1411,6 +1492,14 @@ def update_settings(
 ):
     if settings.session_duration_minutes < 1 or settings.session_duration_minutes > 43200:
         raise HTTPException(status_code=400, detail="Session duration must be between 1 minute and 30 days")
+        
+    # Handle Username Update
+    if settings.username and settings.username != current_user.username:
+        # Check if username is taken
+        existing_username = db.query(models.User).filter(models.User.username == settings.username).first()
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        current_user.username = settings.username
         
     # Handle Email Update
     if settings.email and settings.email != current_user.email:

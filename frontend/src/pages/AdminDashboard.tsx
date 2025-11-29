@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { Users, Search, Plus, Edit2, Trash2, Loader2, Save, AlertTriangle, Scale, Utensils, Lock, Server, Activity } from 'lucide-react';
+import { Users, Search, Plus, Edit2, Trash2, Loader2, Save, AlertTriangle, Scale, Utensils, Lock, Server, Activity, X } from 'lucide-react';
 import AdminRoles from '../components/AdminRoles';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import AdminSystem from '../components/AdminSystem';
 import SystemStatus from '../components/SystemStatus';
 import { Modal } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
+import { GlassTabs } from '../components/ui/GlassTabs';
 
 interface User {
     id: string;
@@ -22,6 +23,7 @@ interface User {
     role: string;
     role_rel?: { name: string };
     is_verified?: boolean;
+    created_at?: string;
 }
 
 interface Role {
@@ -248,19 +250,31 @@ export default function AdminDashboard() {
                                 <input
                                     type="text"
                                     placeholder={t('admin.search') || "Search..."}
-                                    className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                    className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
                                         setCurrentPage(1);
                                     }}
                                 />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            setCurrentPage(1);
+                                        }}
+                                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                             <button
                                 onClick={handleCreateUser}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-xs font-medium shrink-0 w-full sm:w-auto"
+                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center shrink-0 transition-colors shadow-sm"
+                                title={t('admin.add_user') || "Add User"}
                             >
-                                <Plus className="h-3.5 w-3.5" /> {t('admin.add_user') || "Add User"}
+                                <Plus className="h-4 w-4" />
                             </button>
                         </div>
                     </div>
@@ -271,6 +285,7 @@ export default function AdminDashboard() {
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                                 <tr>
                                     <th className="px-6 py-3">{t('login.username')}</th>
+                                    <th className="px-6 py-3">{t('profile.stats.member_since')}</th>
                                     <th className="px-6 py-3">{t('admin.tab_roles')}</th>
                                     <th className="px-6 py-3">{t('admin.status')}</th>
                                     <th className="px-6 py-3 text-right">{t('admin.actions')}</th>
@@ -284,6 +299,9 @@ export default function AdminDashboard() {
                                                 {u.username.charAt(0).toUpperCase()}
                                             </div>
                                             {u.username}
+                                        </td>
+                                        <td className="px-6 py-4 text-muted-foreground">
+                                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <select
@@ -370,7 +388,14 @@ export default function AdminDashboard() {
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                                             {u.username.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="font-medium">{u.username}</span>
+                                        <div>
+                                            <span className="font-medium block">{u.username}</span>
+                                            {u.created_at && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {new Date(u.created_at).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <span className={cn(
                                         "px-2 py-1 rounded-full text-xs font-medium border",
@@ -650,12 +675,14 @@ export default function AdminDashboard() {
 
 
     return (
-        <div className="w-full space-y-8">
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar Navigation */}
-                <aside className="w-full lg:w-64 shrink-0">
-                    <nav className="flex flex-col gap-2 glass-panel p-4 rounded-xl">
-                        {[
+        <div className="w-full space-y-6">
+            <div className="flex flex-col gap-6">
+                {/* Top Tabs Navigation */}
+                <div className="w-full overflow-x-auto">
+                    <GlassTabs
+                        activeTab={activeTab}
+                        onChange={(id) => setActiveTab(id as any)}
+                        tabs={[
                             { id: 'users', label: t('admin.tab_users'), icon: Users, perm: 'manage:users' },
                             { id: 'roles', label: t('admin.tab_roles'), icon: Lock, perm: 'manage:roles' },
                             { id: 'units', label: t('admin.tab_units'), icon: Scale, perm: 'manage:units' },
@@ -666,23 +693,13 @@ export default function AdminDashboard() {
                             .filter(item => {
                                 return hasPermission(item.perm) || user?.role === 'admin';
                             })
-                            .map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id as any)}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
-                                        activeTab === item.id
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
-                                </button>
-                            ))}
-                    </nav>
-                </aside>
+                            .map(item => ({
+                                id: item.id,
+                                label: item.label,
+                                icon: item.icon
+                            }))}
+                    />
+                </div>
 
                 {/* Content Area */}
                 <div className="flex-1 min-w-0">

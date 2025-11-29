@@ -14,6 +14,7 @@ import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Timeline, TimelineEvent } from '../components/Timeline';
+import { GlassTabs } from '../components/ui/GlassTabs';
 
 interface Schedule {
     id: string;
@@ -433,44 +434,20 @@ export default function Planer() {
             activeTab === 'calendar' ? "h-[calc(100vh-140px)]" : "min-h-[calc(100vh-140px)]"
         )}>
             {/* Tabs & Actions */}
-            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-1 w-full">
-                <div className="flex">
-                    <button
-                        onClick={() => setActiveTab('calendar')}
-                        className={cn(
-                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                            activeTab === 'calendar' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="w-4 h-4" />
-                        {t('planer.tab_calendar') || 'Calendar'}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('list')}
-                        className={cn(
-                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                            activeTab === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <List className="w-4 h-4" />
-                        {t('planer.tab_list') || 'List'}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('timeline')}
-                        className={cn(
-                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
-                            activeTab === 'timeline' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Activity className="w-4 h-4" />
-                        {t('planer.tab_timeline') || 'Timeline'}
-                    </button>
-                </div>
-
-                <Button onClick={() => handleAddEvent()} size="sm" className="gap-2 ml-2">
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t('planer.add_event')}</span>
-                </Button>
+            <div className="mb-1">
+                <GlassTabs
+                    activeTab={activeTab}
+                    onChange={(id) => setActiveTab(id as any)}
+                    tabs={[
+                        { id: 'calendar', label: t('planer.tab_calendar') || 'Calendar', icon: CalendarIcon },
+                        { id: 'list', label: t('planer.tab_list') || 'List', icon: List },
+                        { id: 'timeline', label: t('planer.tab_timeline') || 'Timeline', icon: Activity },
+                    ]}
+                >
+                    <Button onClick={() => handleAddEvent()} size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('planer.add_event')}>
+                        <Plus className="w-4 h-4" />
+                    </Button>
+                </GlassTabs>
             </div>
 
             {/* Calendar Grid */}
@@ -882,7 +859,7 @@ export default function Planer() {
                                     </div>
                                 )}
 
-                                {eventType === 'recipe' && (
+                                {eventType === 'recipe' && recipes?.find(r => r.id === selectedRecipeId)?.type === 'baking' && (
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">{t('planer.real_temp') || "Real Temperature (°C)"}</label>
                                         <div className="relative">

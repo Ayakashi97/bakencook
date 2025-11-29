@@ -107,7 +107,7 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-muted/30 px-4 py-8 overflow-y-auto">
             <div className="w-full max-w-md space-y-8 bg-card p-8 rounded-lg border shadow-sm">
                 <div className="text-center">
                     <div className="flex justify-center mb-4">

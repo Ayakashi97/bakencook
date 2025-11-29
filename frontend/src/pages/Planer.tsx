@@ -7,7 +7,7 @@ import {
     addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay
 } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Search, Check, Pencil, Clock, Trash2, ChefHat } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Search, Check, Pencil, Clock, Trash2, ChefHat, List, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
@@ -27,7 +27,8 @@ interface Schedule {
     real_temperature?: number;
 }
 
-type ViewMode = 'month' | 'week' | 'day' | 'list';
+type ViewMode = 'month' | 'week' | 'day';
+type Tab = 'calendar' | 'list' | 'timeline';
 
 export default function Planer() {
     const { t, i18n } = useTranslation();
@@ -39,6 +40,7 @@ export default function Planer() {
     const [view, setView] = useState<ViewMode>(() => {
         return (localStorage.getItem('planner_view') as ViewMode) || 'month';
     });
+    const [activeTab, setActiveTab] = useState<Tab>('calendar');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -82,7 +84,7 @@ export default function Planer() {
     });
 
     const { data: schedules, isLoading } = useQuery<Schedule[]>({
-        queryKey: ['schedules', view, currentDate.toISOString()], // Refetch when view/date changes
+        queryKey: ['schedules', view, currentDate.toISOString(), activeTab], // Refetch when view/date/tab changes
         queryFn: async () => {
             // Calculate range based on view
             let start = new Date();
@@ -94,7 +96,8 @@ export default function Planer() {
             } else if (view === 'week') {
                 start = startOfWeek(currentDate, { weekStartsOn: 1 });
                 end = endOfWeek(currentDate, { weekStartsOn: 1 });
-            } else if (view === 'list') {
+
+            } else if (activeTab === 'list') {
                 start = new Date(); // Start from now
                 end = addMonths(new Date(), 6); // Look ahead 6 months
             } else {
@@ -163,11 +166,24 @@ export default function Planer() {
                 const start = startOfWeek(currentDate, { weekStartsOn: 1 });
                 const end = endOfWeek(currentDate, { weekStartsOn: 1 });
                 return time >= start && time <= end;
+            } else if (view === 'month') {
+                return isSameMonth(time, currentDate);
             }
             return false;
         });
 
-        relevantSchedules.forEach(schedule => {
+        // For Timeline tab, we want ALL future events, similar to List view
+        // But if we are in Calendar tab (week/day view), we want specific events
+        let schedulesToProcess = relevantSchedules;
+
+        if (activeTab === 'timeline') {
+            schedulesToProcess = schedules.filter(s => {
+                const time = parseISO(s.target_time);
+                return time >= new Date(); // Future only
+            });
+        }
+
+        schedulesToProcess.forEach(schedule => {
             const targetTime = parseISO(schedule.target_time);
 
             if (schedule.event_type === 'custom' || !schedule.recipe) {
@@ -175,7 +191,7 @@ export default function Planer() {
                 events.push({
                     id: schedule.id,
                     title: schedule.title || 'Event',
-                    start: targetTime, // Simplified
+                    start: targetTime,
                     end: targetTime,
                     type: 'custom',
                     scheduleId: schedule.id,
@@ -394,37 +410,7 @@ export default function Planer() {
         <div className="space-y-6 pb-20 h-[calc(100vh-140px)] flex flex-col">
             {/* Header */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass-card p-4 rounded-xl">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <CalendarIcon className="h-6 w-6 text-primary" />
-                        <span className="capitalize">
-                            {format(currentDate, view === 'day' ? 'PPPP' : 'MMMM yyyy', { locale })}
-                        </span>
-                    </h1>
-                    <div className="flex items-center bg-muted/50 rounded-lg p-1 border">
-                        <button onClick={prev} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-                        {view !== 'list' && (
-                            <button onClick={today} className="px-3 py-1 text-sm font-medium hover:bg-background rounded-md transition-colors">{t('common.today') || "Today"}</button>
-                        )}
-                        <button onClick={next} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronRight className="w-5 h-5" /></button>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="flex bg-muted/50 rounded-lg p-1 border mr-auto md:mr-0">
-                        {(['month', 'week', 'day', 'list'] as ViewMode[]).map((v) => (
-                            <button
-                                key={v}
-                                onClick={() => setView(v)}
-                                className={cn(
-                                    "px-3 py-1.5 text-sm font-medium rounded-md transition-all capitalize",
-                                    view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                {t(`planer.view_${v}`)}
-                            </button>
-                        ))}
-                    </div>
+                <div className="flex items-center gap-2 w-full md:w-auto ml-auto">
                     <Button onClick={() => handleAddEvent()} size="sm" className="gap-2">
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">{t('planer.add_event')}</span>
@@ -432,106 +418,91 @@ export default function Planer() {
                 </div>
             </div>
 
-            {/* Calendar Grid */}
-            <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
-                {isLoading && (
-                    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                )}
-                {/* Weekday Headers */}
-                {view !== 'day' && view !== 'list' && (
-                    <div className="grid grid-cols-7 border-b bg-muted/30">
-                        {weekDays.map((day, i) => (
-                            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground">
-                                {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEE', { locale })}
-                            </div>
-                        ))}
-                    </div>
-                )}
+            {/* Tabs */}
+            <div className="flex p-1 bg-muted/50 rounded-lg w-fit">
+                <button
+                    onClick={() => setActiveTab('calendar')}
+                    className={cn(
+                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                        activeTab === 'calendar' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    <CalendarIcon className="w-4 h-4" />
+                    {t('planer.tab_calendar') || 'Calendar'}
+                </button>
+                <button
+                    onClick={() => setActiveTab('list')}
+                    className={cn(
+                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                        activeTab === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    <List className="w-4 h-4" />
+                    {t('planer.tab_list') || 'List'}
+                </button>
+                <button
+                    onClick={() => setActiveTab('timeline')}
+                    className={cn(
+                        "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                        activeTab === 'timeline' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    <Activity className="w-4 h-4" />
+                    {t('planer.tab_timeline') || 'Timeline'}
+                </button>
+            </div>
 
-                {/* List View */}
-                {view === 'list' && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {processedEvents
-                            .filter(e => !e.isStep && e.start >= new Date()) // Only future main events
-                            .sort((a, b) => a.start.getTime() - b.start.getTime())
-                            .map(event => (
-                                <div
-                                    key={event.id}
+            {/* Calendar Grid */}
+            {activeTab === 'calendar' && (
+                <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-white/10">
+                        <div className="flex items-center gap-4">
+                            <h1 className="text-xl font-bold flex items-center gap-2">
+                                <CalendarIcon className="h-5 w-5 text-primary" />
+                                <span className="capitalize">
+                                    {format(currentDate, view === 'day' ? 'PPPP' : 'MMMM yyyy', { locale })}
+                                </span>
+                            </h1>
+                            <div className="flex items-center bg-muted/50 rounded-lg p-1 border">
+                                <button onClick={prev} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={today} className="px-3 py-1 text-xs font-medium hover:bg-background rounded-md transition-colors">{t('common.today') || "Today"}</button>
+                                <button onClick={next} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex bg-muted/50 rounded-lg p-1 border">
+                            {(['month', 'week', 'day'] as ViewMode[]).map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => setView(v)}
                                     className={cn(
-                                        "flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-lg border hover:border-primary/50 transition-colors",
-                                        event.type === 'recipe' && "cursor-pointer hover:bg-white/60 dark:hover:bg-white/5"
+                                        "px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize",
+                                        view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                                     )}
-                                    onClick={() => {
-                                        if (event.type === 'recipe' && event.recipeId) {
-                                            navigate(`/recipe/${event.recipeId}`);
-                                        }
-                                    }}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex flex-col items-center justify-center w-12 h-12 bg-primary/10 rounded-lg text-primary">
-                                            <span className="text-xs font-bold uppercase">{format(event.start, 'MMM')}</span>
-                                            <span className="text-lg font-bold">{format(event.start, 'd')}</span>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-medium">{event.title}</h3>
-                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                                <Clock className="w-3 h-3" />
-                                                {format(event.start, 'HH:mm')}
-                                                {event.type === 'recipe' && (
-                                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] uppercase font-bold">
-                                                        {t('planer.type_recipe')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingEventId(event.scheduleId);
-                                                const original = schedules?.find(s => s.id === event.scheduleId);
-                                                if (original) {
-                                                    setEventType(original.event_type as any);
-                                                    setCustomTitle(original.title || '');
-                                                    setSelectedRecipeId(original.recipe_id || '');
-                                                    setTargetTime(format(parseISO(original.target_time), "yyyy-MM-dd'T'HH:mm"));
-                                                    setIsRecurring(!!original.recurrence_rule);
-                                                    setShowAddModal(true);
-                                                }
-                                            }}
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDeletingEventId(event.scheduleId);
-                                                setShowDeleteModal(true);
-                                            }}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </div>
+                                    {t(`planer.view_${v}`)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                    )}
+                    {/* Weekday Headers */}
+                    {view !== 'day' && (
+                        <div className="grid grid-cols-7 border-b bg-muted/30">
+                            {weekDays.map((day, i) => (
+                                <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground">
+                                    {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEE', { locale })}
                                 </div>
                             ))}
-                        {processedEvents.filter(e => !e.isStep && e.start >= new Date()).length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                                {t('planer.no_events')}
-                            </div>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
 
-                {/* Days Grid */}
-                {view !== 'list' && (
+                    {/* Days Grid */}
                     <div className={cn(
                         "flex-1 grid overflow-y-auto",
                         view === 'month' ? "grid-cols-7 auto-rows-fr" : view === 'week' ? "grid-cols-7" : "grid-cols-1"
@@ -678,11 +649,93 @@ export default function Planer() {
                             );
                         })}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* List View */}
+            {activeTab === 'list' && (
+                <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {processedEvents
+                            .filter(e => !e.isStep && e.start >= new Date()) // Only future main events
+                            .sort((a, b) => a.start.getTime() - b.start.getTime())
+                            .map(event => (
+                                <div
+                                    key={event.id}
+                                    className={cn(
+                                        "flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-lg border hover:border-primary/50 transition-colors",
+                                        event.type === 'recipe' && "cursor-pointer hover:bg-white/60 dark:hover:bg-white/5"
+                                    )}
+                                    onClick={() => {
+                                        if (event.type === 'recipe' && event.recipeId) {
+                                            navigate(`/recipe/${event.recipeId}`);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center justify-center w-12 h-12 bg-primary/10 rounded-lg text-primary">
+                                            <span className="text-xs font-bold uppercase">{format(event.start, 'MMM')}</span>
+                                            <span className="text-lg font-bold">{format(event.start, 'd')}</span>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium">{event.title}</h3>
+                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <Clock className="w-3 h-3" />
+                                                {format(event.start, 'HH:mm')}
+                                                {event.type === 'recipe' && (
+                                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] uppercase font-bold">
+                                                        {t('planer.type_recipe')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingEventId(event.scheduleId);
+                                                const original = schedules?.find(s => s.id === event.scheduleId);
+                                                if (original) {
+                                                    setEventType(original.event_type as any);
+                                                    setCustomTitle(original.title || '');
+                                                    setSelectedRecipeId(original.recipe_id || '');
+                                                    setTargetTime(format(parseISO(original.target_time), "yyyy-MM-dd'T'HH:mm"));
+                                                    setIsRecurring(!!original.recurrence_rule);
+                                                    setShowAddModal(true);
+                                                }
+                                            }}
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeletingEventId(event.scheduleId);
+                                                setShowDeleteModal(true);
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        {processedEvents.filter(e => !e.isStep && e.start >= new Date()).length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                {t('planer.no_events')}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Timeline View */}
-            {(view === 'week' || view === 'day') && (
+            {activeTab === 'timeline' && (
                 <Timeline events={timelineEvents} />
             )}
 

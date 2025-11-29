@@ -52,15 +52,15 @@ export function Timeline({ events }: TimelineProps) {
     });
 
     return (
-        <div className="glass-card rounded-xl p-6 space-y-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                <Clock className="w-5 h-5 text-primary" />
+        <div className="glass-card rounded-xl p-4 space-y-4 pb-20">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                <Clock className="w-4 h-4 text-primary" />
                 Timeline
             </h2>
 
-            <div className="relative space-y-0 ml-4">
+            <div className="relative space-y-0 ml-2">
                 {/* Continuous vertical line */}
-                <div className="absolute left-[19px] top-2 bottom-4 w-0.5 bg-muted/50 -z-10" />
+                <div className="absolute left-[15px] top-2 bottom-4 w-0.5 bg-muted/50 -z-10" />
 
                 {events.map((event, index) => {
                     const isLast = index === events.length - 1;
@@ -69,41 +69,41 @@ export function Timeline({ events }: TimelineProps) {
                     const bgColor = colorClass.split(' ')[1];
 
                     return (
-                        <div key={event.id} className="relative pl-12 py-3 group">
+                        <div key={event.id} className="relative pl-10 py-2 group">
                             {/* Dot on the timeline */}
                             <div className={cn(
-                                "absolute left-[14px] top-5 w-3 h-3 rounded-full border-2 bg-background z-10 transition-all group-hover:scale-125",
+                                "absolute left-[10px] top-4 w-2.5 h-2.5 rounded-full border-2 bg-background z-10 transition-all group-hover:scale-125",
                                 borderColor
                             )} />
 
                             {/* Connector to next item if same recipe */}
                             {!isLast && events[index + 1].scheduleId === event.scheduleId && (
                                 <div className={cn(
-                                    "absolute left-[19px] top-8 bottom-[-12px] w-0.5 z-0 opacity-50",
+                                    "absolute left-[15px] top-6 bottom-[-8px] w-0.5 z-0 opacity-50",
                                     bgColor
                                 )} />
                             )}
 
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 bg-white/40 dark:bg-black/20 p-3 rounded-lg border border-transparent hover:border-primary/20 transition-all">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 bg-white/40 dark:bg-black/20 p-2 rounded-lg border border-transparent hover:border-primary/20 transition-all">
                                 {/* Time */}
-                                <div className="min-w-[80px] font-mono text-sm font-medium text-muted-foreground">
+                                <div className="min-w-[60px] font-mono text-xs font-medium text-muted-foreground">
                                     {format(event.start, 'HH:mm')}
                                 </div>
 
                                 {/* Content */}
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-0.5">
                                         {event.recipeTitle && (
-                                            <span className="text-xs font-bold uppercase tracking-wider text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded truncate max-w-[200px]">
                                                 {event.recipeTitle}
                                             </span>
                                         )}
                                         {event.type === 'baking' && <ChefHat className="w-3 h-3 text-orange-500" />}
                                     </div>
-                                    <h3 className="font-medium text-foreground">{event.title}</h3>
+                                    <h3 className="font-medium text-sm text-foreground truncate">{event.title}</h3>
                                     {event.type !== 'recipe' && event.type !== 'custom' && (
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                            Duration: {Math.round((event.end.getTime() - event.start.getTime()) / 60000)} min
+                                        <div className="text-[10px] text-muted-foreground">
+                                            {Math.round((event.end.getTime() - event.start.getTime()) / 60000)} min
                                         </div>
                                     )}
                                 </div>

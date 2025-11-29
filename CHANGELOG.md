@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.15] - 2025-11-29
+### Changes
+- refactor: Remove unused `PageHeader` imports, `duplicateRecipeId` prop, and `refetch` variable.
+- refactor: Relocate German translation keys and remove unused `pending_approval`, `approve`, `verified` keys.
+- feat: Implement linking ingredients to recipes in the backend and frontend UI, and update recipe fetching to include a limit.
+- refactor: remove PageHeader component from AdminDashboard
+- refactor: Replaced `PageHeader` with a combined tabs and actions layout, and set create recipe button size to small.
+- feat: Add option to show past events in the planner list view
+- feat: Calculate recipe end time based on duration for 'start' mode and correct event type mapping when editing schedules.
+- refactor: Conditionally set Planer container height to fixed or minimum based on active tab.
+- feat: Update 'add event' button text to 'Plan Recipe' and reposition it next to the tabs on the Planer page.
+- feat: introduce timeline tab and refine planner UI with new view modes and translations
+- feat: add Timeline component to Planer page for detailed visualization of recipe steps and custom events.
+- feat: Implement success countdown and redirect after recipe import completion
+- refactor: Move import redirect logic from interval to a dedicated effect.
+- feat: Migrate recipe URL duplicate check to a POST endpoint with improved error handling and updated CORS origins.
+- feat: Implement pre-import duplicate recipe check with detailed progress steps and integrated warning UI.
+- feat: Add duplicate recipe import detection and UI, and replace API key regeneration confirmation with a modal.
+
 ## [1.0.14] - 2025-11-29
 ### Changes
 - refactor: Relocate German translation keys and remove unused `pending_approval`, `approve`, `verified` keys.

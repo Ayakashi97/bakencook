@@ -16,7 +16,7 @@ interface ImportProgressModalProps {
     onCancel?: () => void;
 }
 
-export function ImportProgressModal({ isOpen, onClose, status, error, duplicateRecipeId, redirectCountdown, successCountdown, onRedirect, onCancel }: ImportProgressModalProps) {
+export function ImportProgressModal({ isOpen, onClose, status, error, redirectCountdown, successCountdown, onRedirect, onCancel }: ImportProgressModalProps) {
     const { t } = useTranslation();
     const [steps, setSteps] = useState([
         { id: 'checking', label: t('import.step_checking', 'Checking for duplicates'), status: 'pending' },

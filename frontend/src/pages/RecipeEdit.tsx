@@ -234,6 +234,14 @@ export default function RecipeEdit() {
         }
     });
 
+    // Handle redirect when countdown hits 0
+    useEffect(() => {
+        if (redirectCountdown === 0 && duplicateRecipeId && importStatus === 'duplicate') {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            navigate(`/recipe/${duplicateRecipeId}`);
+        }
+    }, [redirectCountdown, duplicateRecipeId, importStatus, navigate]);
+
     const handleImport = async () => {
         if (!importUrl) return;
 
@@ -261,11 +269,7 @@ export default function RecipeEdit() {
 
                 countdownIntervalRef.current = setInterval(() => {
                     setRedirectCountdown((prev) => {
-                        if (prev <= 1) {
-                            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-                            navigate(`/recipe/${checkRes.data.recipe_id}`);
-                            return 0;
-                        }
+                        if (prev <= 1) return 0;
                         return prev - 1;
                     });
                 }, 1000);

@@ -652,10 +652,6 @@ export default function AdminDashboard() {
 
     return (
         <div className="w-full space-y-8">
-            <PageHeader
-                title={t('admin.title')}
-            />
-
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Navigation */}
                 <aside className="w-full lg:w-64 shrink-0">

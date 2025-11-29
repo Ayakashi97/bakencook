@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Recipe } from '../lib/api';
 import {
     format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-    eachDayOfInterval, addMonths, addWeeks, subWeeks,
+    eachDayOfInterval, addMonths, addWeeks, subWeeks, subMonths,
     addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay, addMinutes
 } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
@@ -56,6 +56,7 @@ export default function Planer() {
     const [targetTime, setTargetTime] = useState('');
     const [timeMode, setTimeMode] = useState<'start' | 'target'>('target');
     const [realTemperature, setRealTemperature] = useState<number>(20);
+    const [showPastEvents, setShowPastEvents] = useState(false);
 
     // Recurrence State
     const [isRecurring, setIsRecurring] = useState(false);
@@ -83,8 +84,8 @@ export default function Planer() {
         },
     });
 
-    const { data: schedules, isLoading } = useQuery<Schedule[]>({
-        queryKey: ['schedules', view, currentDate.toISOString(), activeTab], // Refetch when view/date/tab changes
+    const { data: schedules, isLoading, refetch } = useQuery<Schedule[]>({
+        queryKey: ['schedules', view, currentDate.toISOString(), activeTab, showPastEvents], // Refetch when view/date/tab changes
         queryFn: async () => {
             // Calculate range based on view
             let start = new Date();
@@ -98,9 +99,12 @@ export default function Planer() {
                 end = endOfWeek(currentDate, { weekStartsOn: 1 });
 
             } else if (activeTab === 'list') {
+                start = showPastEvents ? subMonths(new Date(), 6) : new Date(); // Look back 6 months if enabled
+                end = addMonths(new Date(), 6); // Look ahead 6 months
+            } else if (activeTab === 'timeline') {
                 start = new Date(); // Start from now
                 end = addMonths(new Date(), 6); // Look ahead 6 months
-            } else {
+            } else { // Day view
                 start = startOfDay(currentDate);
                 end = endOfDay(currentDate);
             }
@@ -672,9 +676,20 @@ export default function Planer() {
             {/* List View */}
             {activeTab === 'list' && (
                 <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
+                    <div className="flex items-center justify-end p-2 border-b border-white/10">
+                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showPastEvents}
+                                onChange={(e) => setShowPastEvents(e.target.checked)}
+                                className="rounded border-input bg-background/50 text-primary focus:ring-primary/20"
+                            />
+                            {t('planer.show_past') || "Show Past Events"}
+                        </label>
+                    </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {processedEvents
-                            .filter(e => !e.isStep && e.start >= new Date()) // Only future main events
+                            .filter(e => !e.isStep && (showPastEvents || e.start >= new Date())) // Filter based on toggle
                             .sort((a, b) => a.start.getTime() - b.start.getTime())
                             .map(event => (
                                 <div

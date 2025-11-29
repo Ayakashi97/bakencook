@@ -212,21 +212,20 @@ export default function Profile() {
     });
 
     const updateSettingsMutation = useMutation({
-        mutationFn: (data: { session_duration_minutes: number, email?: string, password?: string }) => api.put('/users/me/settings', { ...data, language: i18n.language }),
+        mutationFn: (data: any) => api.put('/users/me/settings', data),
         onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+
+            // If verification is pending, show verification modal
             if (data.data.verification_pending) {
-                // Email verification required
                 setShowVerificationModal(true);
-                toast.info(t('auth.enter_code_desc') || 'Please enter the verification code sent to your email.');
             } else {
-                toast.success(t('profile.settings.saved') || 'Settings saved');
-                queryClient.invalidateQueries({ queryKey: ['user'] });
-                setIsEditingEmail(false);
-                setShowEmailConfirmModal(false);
             }
         },
         onError: (err: any) => {
-            toast.error(err.response?.data?.detail || 'Failed to update settings');
+            console.error("Settings update failed:", err);
+            const msg = err.response?.data?.detail || err.message || "Failed to update settings";
+            toast.error(`${t('profile.settings.update_error') || "Failed to update settings"}: ${msg}`);
         }
     });
 

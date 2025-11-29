@@ -61,3 +61,24 @@ def send_mail(db: Session, to_email: str, subject: str, body: str, smtp_config: 
         from logger import logger
         logger.error(f"Failed to send email: {e}")
         return False
+        return False
+
+def send_verification_email(to_email: str, code: str, db: Session, language: str = "en"):
+    """
+    Sends a verification email with the provided code.
+    """
+    from email_templates import get_email_template
+    
+    # Get app name
+    app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+    app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
+    
+    context = {
+        "app_name": app_name,
+        "code": code,
+        "valid_minutes": "15"
+    }
+    
+    template = get_email_template("verification", language, context)
+    
+    return send_mail(db, to_email, template['subject'], template['body'])

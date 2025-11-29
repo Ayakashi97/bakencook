@@ -7,7 +7,7 @@ from sqlalchemy import text, func, desc, or_, cast, String
 from typing import List, Optional, Dict, Any
 import models
 import schemas
-from database import engine, get_db
+from database import engine, get_db, SessionLocal
 from ai_parser import parse_recipe_from_text
 from scraper import scrape_url
 from datetime import datetime, timedelta
@@ -18,7 +18,7 @@ import os
 import shutil
 import uuid
 import secrets
-from email_utils import send_mail
+from email_utils import send_mail, send_verification_email
 from email_templates import get_email_template
 from logger import logger
 
@@ -110,6 +110,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    try:
+        response = await call_next(request)
+        logger.info(f"Request completed: {response.status_code}")
+        return response
+    except Exception as e:
+        logger.error(f"Request failed: {e}")
+        raise e
+
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -129,6 +140,17 @@ def startup_event():
         db.close()
     except Exception as e:
         print(f"Startup error: {e}")
+
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
 
 @app.get("/")
 def read_root():
@@ -1399,6 +1421,8 @@ def update_settings(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    logger.info(f"update_settings called for user {current_user.username}")
+    logger.info(f"Settings: email={settings.email}, duration={settings.session_duration_minutes}, lang={settings.language}")
     if settings.session_duration_minutes < 1 or settings.session_duration_minutes > 43200:
         raise HTTPException(status_code=400, detail="Session duration must be between 1 minute and 30 days")
         
@@ -1406,10 +1430,12 @@ def update_settings(
     if settings.email and settings.email != current_user.email:
         # Require password for email change
         if not settings.password:
-             raise HTTPException(status_code=401, detail="Password required to change email")
+             logger.warning("Email change requested without password")
+             raise HTTPException(status_code=403, detail="Password required to change email")
              
         if not verify_password(settings.password, current_user.hashed_password):
-             raise HTTPException(status_code=401, detail="Incorrect password")
+             logger.warning(f"Email change failed: Incorrect password for user {current_user.username}")
+             raise HTTPException(status_code=403, detail="Incorrect password")
              
         # Check if email is taken
         existing = db.query(models.User).filter(models.User.email == settings.email).first()
@@ -1419,6 +1445,7 @@ def update_settings(
         # Check if email verification is enabled
         verify_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "enable_email_verification").first()
         verification_enabled = verify_setting.value.lower() == "true" if verify_setting else False
+        logger.info(f"Email verification enabled: {verification_enabled}")
 
         if verification_enabled:
             # Generate code
@@ -1440,22 +1467,25 @@ def update_settings(
             
             # Send Email
             try:
+                logger.info(f"Sending verification email to {settings.email}")
                 send_verification_email(settings.email, code, db, current_user.language)
+                logger.info("Verification email sent")
             except Exception as e:
-                print(f"Failed to send verification email: {e}")
+                logger.error(f"Failed to send verification email: {e}")
                 # If email fails, we should probably rollback or warn. 
                 # For now, let's allow it but user won't get code (unless they check logs/admin)
                 pass
                 
             # Return user but with a flag indicating pending verification
-            # We can't easily add a field to the DB model instance that isn't a column without it being ignored by Pydantic if not in schema
-            # But our schema has verification_pending.
-            # We can set it on the object dynamically if Pydantic 'from_attributes' is used?
-            # Actually, let's just return the user. The frontend will see the email hasn't changed yet.
-            # Wait, we need to tell frontend to show the modal.
-            # Let's attach a temporary attribute.
-            current_user.verification_pending = True
-            return current_user
+            # Construct Pydantic model explicitly to ensure verification_pending is set
+            try:
+                logger.info("Validating response model")
+                user_response = schemas.User.model_validate(current_user)
+                user_response.verification_pending = True
+                return user_response
+            except Exception as e:
+                logger.error(f"Model validation failed: {e}")
+                raise e
              
         current_user.email = settings.email
 

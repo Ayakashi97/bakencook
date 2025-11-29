@@ -205,7 +205,8 @@ def get_system_version():
 
 @app.get("/system/changelog")
 def get_system_changelog():
-    changelog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CHANGELOG.md')
+    root_dir = os.getenv("PROJECT_ROOT", os.path.dirname(os.path.dirname(__file__)))
+    changelog_path = os.path.join(root_dir, 'CHANGELOG.md')
     if os.path.exists(changelog_path):
         with open(changelog_path, 'r') as f:
             content = f.read()
@@ -228,7 +229,7 @@ def check_for_updates(
         channel = channel_setting.value if channel_setting else "stable"
         
         # Fetch tags
-        root_dir = os.path.dirname(os.path.dirname(__file__))
+        root_dir = os.getenv("PROJECT_ROOT", os.path.dirname(os.path.dirname(__file__)))
         subprocess.run(["git", "fetch", "--tags", "--force"], check=True, cwd=root_dir)
         
         # Get all tags
@@ -300,7 +301,8 @@ def run_update_script(target_version: str = None):
     import subprocess
     import sys
     
-    script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'update.sh')
+    root_dir = os.getenv("PROJECT_ROOT", os.path.dirname(os.path.dirname(__file__)))
+    script_path = os.path.join(root_dir, 'scripts', 'update.sh')
     
     cmd = ["bash", script_path]
     if target_version:
@@ -312,7 +314,7 @@ def run_update_script(target_version: str = None):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=os.path.dirname(os.path.dirname(__file__))
+            cwd=root_dir
         )
         update_process_state["pid"] = process.pid
         

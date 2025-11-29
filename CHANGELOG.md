@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.10.0] - 2025-11-29
+## [1.0.10] - 2025-11-29
 ### Changes
 - feat: Add proxy bypass for HTML requests in Vite dev server configuration
 - feat: Explicitly set user enum role based on assigned role name and display admin navigation based on role or system permission.

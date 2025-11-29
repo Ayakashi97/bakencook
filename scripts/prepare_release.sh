@@ -29,13 +29,22 @@ if [ -z "$1" ]; then
     echo "  [1] Stable"
     read -p "Choice (0/1): " RELEASE_TYPE_INPUT
     
+    # Check if current version is beta
+    IS_BETA=false
+    if [[ "$PATCH_AND_SUFFIX" == *"-"* ]]; then
+        IS_BETA=true
+    fi
+
     # 2. Ask for Update Type
     echo ""
     echo "Select Update Type:"
+    if [ "$IS_BETA" = true ]; then
+        echo "  [0] Promote to Stable ($MAJOR.$MINOR.$PATCH)"
+    fi
     echo "  [1] Hotfix (Patch $MAJOR.$MINOR.$((PATCH+1)))"
     echo "  [2] Minor  (Minor $MAJOR.$((MINOR+1)).0)"
     echo "  [3] Major  (Major $((MAJOR+1)).0.0)"
-    read -p "Choice (1-3): " UPDATE_TYPE_INPUT
+    read -p "Choice (0-3): " UPDATE_TYPE_INPUT
     
     # Calculate New Version
     NEXT_MAJOR=$MAJOR
@@ -43,6 +52,14 @@ if [ -z "$1" ]; then
     NEXT_PATCH=$PATCH
     
     case $UPDATE_TYPE_INPUT in
+        0)
+            if [ "$IS_BETA" = false ]; then
+                echo "❌ Cannot promote non-beta version."
+                exit 1
+            fi
+            # Keep current version numbers, just strip beta (handled by forcing Stable type below)
+            RELEASE_TYPE_INPUT="1" 
+            ;;
         1)
             NEXT_PATCH=$((PATCH + 1))
             ;;

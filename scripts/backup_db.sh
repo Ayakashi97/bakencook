@@ -49,7 +49,7 @@ else
         echo "Using local pg_dump with password auth..."
         export PGPASSWORD="${DB_PASSWORD:-securepassword}"
         # Use -h localhost to force TCP and avoid Peer auth issues
-        pg_dump -h localhost -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
+        pg_dump -h localhost -w -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
     else
         echo "Error: Could not find docker container or local pg_dump."
         exit 1

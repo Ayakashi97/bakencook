@@ -26,6 +26,7 @@ services:
     volumes:
       - ./backend:/app
       - ./CHANGELOG.md:/CHANGELOG.md
+      - ./VERSION:/VERSION
       - ./.git:/.git
     environment:
       DATABASE_URL: ${DATABASE_URL}

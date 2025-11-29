@@ -17,7 +17,36 @@ export default function AdminSystem() {
         <div className="space-y-6">
             <div className="glass-card rounded-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
                 <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-white/5 backdrop-blur-sm">
-                    <nav className="flex md:flex-col p-2 gap-1">
+                    {/* Mobile Dropdown */}
+                    <div className="md:hidden p-4">
+                        <div className="relative">
+                            <select
+                                value={activeTab}
+                                onChange={(e) => setActiveTab(e.target.value as any)}
+                                className="w-full appearance-none bg-white/5 border border-white/10 rounded-lg py-2 pl-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                                {[
+                                    { id: 'general', label: t('admin.settings_general', 'General') },
+                                    { id: 'access', label: t('admin.settings_access', 'Access & Security') },
+                                    { id: 'ai', label: t('admin.settings_ai', 'AI Features') },
+                                    { id: 'email', label: t('admin.settings_email', 'Email & SMTP') },
+                                    { id: 'backup', label: t('admin.settings_backup', 'Backup & Restore') },
+                                ].map((tab) => (
+                                    <option key={tab.id} value={tab.id} className="bg-gray-900 text-white">
+                                        {tab.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
+                                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Desktop Sidebar */}
+                    <nav className="hidden md:flex flex-col p-2 gap-1">
                         {[
                             { id: 'general', label: t('admin.settings_general', 'General'), icon: Globe },
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },

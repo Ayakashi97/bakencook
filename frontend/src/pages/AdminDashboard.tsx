@@ -23,6 +23,7 @@ interface User {
     role: string;
     role_rel?: { name: string };
     is_verified?: boolean;
+    created_at?: string;
 }
 
 interface Role {
@@ -284,6 +285,7 @@ export default function AdminDashboard() {
                             <thead className="text-xs text-muted-foreground uppercase bg-muted/30">
                                 <tr>
                                     <th className="px-6 py-3">{t('login.username')}</th>
+                                    <th className="px-6 py-3">{t('profile.stats.member_since')}</th>
                                     <th className="px-6 py-3">{t('admin.tab_roles')}</th>
                                     <th className="px-6 py-3">{t('admin.status')}</th>
                                     <th className="px-6 py-3 text-right">{t('admin.actions')}</th>
@@ -297,6 +299,9 @@ export default function AdminDashboard() {
                                                 {u.username.charAt(0).toUpperCase()}
                                             </div>
                                             {u.username}
+                                        </td>
+                                        <td className="px-6 py-4 text-muted-foreground">
+                                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
                                         </td>
                                         <td className="px-6 py-4">
                                             <select
@@ -383,7 +388,14 @@ export default function AdminDashboard() {
                                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                                             {u.username.charAt(0).toUpperCase()}
                                         </div>
-                                        <span className="font-medium">{u.username}</span>
+                                        <div>
+                                            <span className="font-medium block">{u.username}</span>
+                                            {u.created_at && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {new Date(u.created_at).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <span className={cn(
                                         "px-2 py-1 rounded-full text-xs font-medium border",

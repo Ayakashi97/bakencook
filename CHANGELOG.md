@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.1.0] - 2025-11-29
+### Changes
+- feat: Add responsive mobile/desktop views to GlassTabs component and integrate it into the Planer page.
+- feat: add mobile dropdown navigation for admin settings and display user creation date in admin dashboard user lists
+- feat: backfill user creation timestamps and enhance admin system log display by increasing its size and improving text wrapping.
+- feat: implement admin system backup and restore functionality with dedicated UI and backend logic.
+- feat: Add children prop to GlassTabs and use it for the create recipe button on Dashboard.
+- feat: add optional linked_recipe_id to Ingredient schema
+- refactor: Remove `linked_recipe_id` from ingredient creation and update operations.
+- feat: Add i18n support for profile page statistics, account details, and API access sections.
+- feat: Remove linked recipe ID from ingredients and persist user language preference
+- feat: Add user `created_at` field, enable username editing, improve admin ingredient search, and refine register page layout.
+- feat: Refactor profile page layout and add user settings for theme, language, session duration, and recipe statistics.
+- style: Add `shrink-0` class to create buttons in AdminRoles, AdminUnits, and AdminIngredients components.
+- feat: Conditionally render planer real temperature for baking recipes, update AdminIngredients icon, and refactor dashboard and AdminRoles buttons for consistent styling.
+- style: Make 'add' buttons icon-only and update Admin System navigation layout.
+- refactor: Consolidate admin import/export actions into a dropdown menu and remove the server management header.
+- feat: introduce GlassTabs component and integrate it into Profile, AdminDashboard, and Dashboard pages, replacing their custom tab UIs.
+- feat: apply imported recipe data and enable review mode when import modal is closed after successful import
+- feat: Update image import endpoint to accept language as form data.
+- feat: Implement AI-powered recipe import from images with new backend endpoint and frontend UI.
+- docs: Update Debian sudoers configuration for bakencook-backend restart to include `--no-ask-password` and rename the config file.
+
 ## [1.0.17] - 2025-11-29
 ### Changes
 - feat: apply imported recipe data and enable review mode when import modal is closed after successful import

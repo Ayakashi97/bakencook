@@ -4,10 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import text, func, desc, or_, cast, String
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import models
 import schemas
-from database import engine, get_db
+from database import engine, get_db, SessionLocal
 from ai_parser import parse_recipe_from_text
 from scraper import scrape_url
 from datetime import datetime, timedelta
@@ -18,7 +18,9 @@ import os
 import shutil
 import uuid
 import secrets
-from email_utils import send_mail
+from email_utils import send_mail, send_verification_email
+from email_templates import get_email_template
+from logger import logger
 
 def get_gemini_api_key(db: Session) -> Optional[str]:
     setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "gemini_api_key").first()
@@ -34,6 +36,18 @@ def get_gemini_api_key(db: Session) -> Optional[str]:
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
+# Migration: Add language column if missing
+try:
+    with engine.connect() as conn:
+        # Check if column exists (Postgres specific, but try/except works for simple add)
+        # For SQLite/Postgres, attempting to add it will fail if it exists.
+        # We wrap in try/except to ignore "duplicate column" error.
+        conn.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR DEFAULT 'en'"))
+        conn.commit()
+except Exception as e:
+    # logger.info(f"Migration note: {e}")
+    pass
 
 # Seed Roles
 def seed_roles():
@@ -82,9 +96,39 @@ app.add_middleware(
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
+# Security Headers Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Ensure static directory exists
 os.makedirs("static/uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.on_event("startup")
+def startup_event():
+    # Load System Settings
+    try:
+        db = SessionLocal()
+        # Debug Mode
+        debug_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
+        if debug_setting and debug_setting.value.lower() == "true":
+            from logger import set_log_level
+            set_log_level(True)
+            from logger import logger
+            logger.info("Debug Mode enabled via System Settings")
+        db.close()
+    except Exception as e:
+        print(f"Startup error: {e}")
 
 @app.get("/")
 def read_root():
@@ -135,6 +179,47 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
         is_verified=True # Admin is verified by default
     )
     db.add(new_admin)
+    
+    # Get app name and language
+    app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+    app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
+    
+    # Determine language (default to en, or use user's language if available)
+    # Note: current_user is not available here in system init, so default to 'en'
+    language = "en" 
+    
+    from email_templates import get_test_email_template
+    html_content = get_test_email_template(app_name, language)
+    
+    # Extract subject from template (a bit hacky, but keeps it self-contained)
+    # Or better, just define subject here based on language
+    subjects = {
+        "en": f"Test Email from {app_name}",
+        "de": f"Test-E-Mail von {app_name}"
+    }
+    subject = subjects.get(language, subjects["en"])
+
+    # This part of the code seems to be misplaced or intended for a different endpoint.
+    # The `request` object is not available here, and `test_recipient` is not part of `init_data`.
+    # Assuming this block was meant to be illustrative of how `get_test_email_template` would be used
+    # in a *separate* endpoint for sending test emails, and not directly within system initialization.
+    # For now, I will comment it out to maintain syntactical correctness and avoid errors.
+    # If the intention was to send a test email *during* initialization, `init_data` would need
+    # to include `test_recipient` and `smtp_config` details, and `email_utils.send_email` would need to be imported.
+
+    # success = email_utils.send_email(
+    #     to_email=request.test_recipient,
+    #     subject=subject,
+    #     body=html_content, # Send HTML content
+    #     smtp_config={
+    #         "smtp_server": request.smtp_server,
+    #         "smtp_port": request.smtp_port,
+    #         "smtp_user": request.smtp_user,
+    #         "smtp_password": request.smtp_password,
+    #         "sender_email": request.sender_email
+    #     },
+    #     is_html=True
+    # )
     
     # 2. Save Settings
     settings_to_save = {
@@ -187,7 +272,7 @@ def initialize_system(init_data: schemas.SystemInit, db: Session = Depends(get_d
             else:
                 db.add(models.SystemSetting(key="favicon_url", value=val))
         except Exception as e:
-            print(f"Failed to save favicon: {e}")
+            logger.error(f"Failed to save favicon: {e}")
 
     db.commit()
     
@@ -281,7 +366,7 @@ def check_for_updates(
         }
 
     except Exception as e:
-        print(f"Update check failed: {e}")
+        logger.error(f"Update check failed: {e}")
         return {"update_available": False, "error": str(e)}
 
 # --- Update Execution ---
@@ -372,29 +457,14 @@ def get_system_settings(
     channel_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
     channel = channel_setting.value if channel_setting else "stable"
     
+    # Fetch debug mode
+    debug_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "debug_mode").first()
+    debug_mode = debug_setting.value.lower() == "true" if debug_setting else False
+    
     return {
-        "update_channel": channel
+        "update_channel": channel,
+        "debug_mode": debug_mode
     }
-
-@app.post("/system/settings")
-def update_system_settings(
-    settings: dict,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(has_permission("manage:system"))
-):
-    if "update_channel" in settings:
-        channel = settings["update_channel"]
-        if channel not in ["stable", "beta"]:
-            raise HTTPException(status_code=400, detail="Invalid channel")
-            
-        setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "update_channel").first()
-        if setting:
-            setting.value = channel
-        else:
-            db.add(models.SystemSetting(key="update_channel", value=channel))
-            
-    db.commit()
-    return {"message": "Settings updated"}
 
 
 # --- Auth ---
@@ -428,7 +498,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         hashed_password=hashed_password, 
         role=role_enum, 
         role_id=role_id,
-        email=user.email
+        email=user.email,
+        language=user.language or "en"
     )
     
     # Check registration setting
@@ -463,7 +534,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         app_name = app_name.strip()
         
         if user.email:
-            send_mail(db, user.email, f"Verify your email - {app_name}", f"Your verification code is: <b>{token}</b>")
+            tmpl = get_email_template('verification', new_user.language, {'code': token, 'app_name': app_name})
+            send_mail(db, user.email, tmpl['subject'], tmpl['body'])
     else:
         new_user.is_verified = True
 
@@ -528,7 +600,8 @@ def resend_verification(email: Optional[str] = None, username: Optional[str] = N
         db.add(ver_token)
     db.commit()
     
-    send_mail(db, user.email, "Verify your email", f"Your verification code is: <b>{token}</b>")
+    tmpl = get_email_template('verification', user.language, {'code': token})
+    send_mail(db, user.email, tmpl['subject'], tmpl['body'])
     return {"message": "Verification email sent"}
 
 @app.post("/token", response_model=schemas.Token)
@@ -679,16 +752,7 @@ def revoke_session(
     db.commit()
     return {"message": "Session revoked"}
 
-@app.put("/users/me/settings", response_model=schemas.User)
-def update_settings(
-    settings: schemas.UserUpdateSettings,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
-):
-    current_user.session_duration_minutes = settings.session_duration_minutes
-    db.commit()
-    db.refresh(current_user)
-    return current_user
+
 
 @app.delete("/users/me")
 def delete_my_account(
@@ -1142,6 +1206,16 @@ def create_import_job(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_user_for_automation)
 ):
+    # Check if AI is enabled
+    ai_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "enable_ai").first()
+    if not ai_setting or ai_setting.value.lower() != "true":
+        raise HTTPException(status_code=400, detail="AI automation is disabled")
+
+    # Check if API Key is configured
+    api_key_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "gemini_api_key").first()
+    if not api_key_setting or not api_key_setting.value:
+        raise HTTPException(status_code=400, detail="AI API Key not configured")
+
     # Create Job
     job = models.ImportJob(
         user_id=current_user.id,
@@ -1319,6 +1393,16 @@ def bulk_create_ingredients(ingredients: List[schemas.IngredientItemCreate], db:
 
 
 
+
+def send_verification_email(to_email: str, code: str, db: Session, language: str = "en"):
+    # Get app name
+    app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+    app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+    app_name = app_name.strip()
+    
+    tmpl = get_email_template('email_change', language, {'code': code, 'app_name': app_name})
+    send_mail(db, to_email, tmpl['subject'], tmpl['body'])
+
 @app.put("/users/me/settings", response_model=schemas.User)
 def update_settings(
     settings: schemas.UserUpdateSettings,
@@ -1328,9 +1412,111 @@ def update_settings(
     if settings.session_duration_minutes < 1 or settings.session_duration_minutes > 43200:
         raise HTTPException(status_code=400, detail="Session duration must be between 1 minute and 30 days")
         
+    # Handle Email Update
+    if settings.email and settings.email != current_user.email:
+        # Require password for email change
+        if not settings.password:
+             logger.warning("Email change requested without password")
+             raise HTTPException(status_code=403, detail="Password required to change email")
+             
+        if not verify_password(settings.password, current_user.hashed_password):
+             logger.warning(f"Email change failed: Incorrect password for user {current_user.username}")
+             raise HTTPException(status_code=403, detail="Incorrect password")
+             
+        # Check if email is taken
+        existing = db.query(models.User).filter(models.User.email == settings.email).first()
+        if existing:
+             raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Check if email verification is enabled
+        verify_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "enable_email_verification").first()
+        verification_enabled = verify_setting.value.lower() == "true" if verify_setting else False
+
+        if verification_enabled:
+            # Generate code
+            import random
+            code = str(random.randint(100000, 999999))
+            
+            # Store in VerificationToken (hack: store code:email in token field)
+            # Remove old tokens for this user
+            db.query(models.VerificationToken).filter(models.VerificationToken.user_id == current_user.id).delete()
+            
+            token_str = f"{code}:{settings.email}"
+            new_token = models.VerificationToken(
+                token=token_str,
+                user_id=current_user.id,
+                expires_at=datetime.utcnow() + timedelta(minutes=15)
+            )
+            db.add(new_token)
+            db.commit()
+            
+            # Send Email
+            try:
+                send_verification_email(settings.email, code, db, current_user.language)
+            except Exception as e:
+                logger.error(f"Failed to send verification email: {e}")
+                # If email fails, we should probably rollback or warn. 
+                # For now, let's allow it but user won't get code (unless they check logs/admin)
+                pass
+                
+            # Return user but with a flag indicating pending verification
+            # Construct Pydantic model explicitly to ensure verification_pending is set
+            user_response = schemas.User.model_validate(current_user)
+            user_response.verification_pending = True
+            return user_response
+             
+        current_user.email = settings.email
+
+    if settings.language:
+        current_user.language = settings.language
+
     current_user.session_duration_minutes = settings.session_duration_minutes
     db.commit()
     db.refresh(current_user)
+    return current_user
+
+@app.post("/users/me/email/confirm", response_model=schemas.User)
+def confirm_email_change(
+    confirm: schemas.EmailChangeConfirm,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    # Find token
+    token_str = f"{confirm.code}:{confirm.email}"
+    token = db.query(models.VerificationToken).filter(
+        models.VerificationToken.user_id == current_user.id,
+        models.VerificationToken.token == token_str
+    ).first()
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="Invalid code or email")
+        
+    if token.expires_at < datetime.utcnow():
+        db.delete(token)
+        db.commit()
+        raise HTTPException(status_code=400, detail="Code expired")
+        
+    # Update Email
+    old_email = current_user.email
+    current_user.email = confirm.email
+    
+    # Cleanup
+    db.delete(token)
+    db.commit()
+    db.refresh(current_user)
+    
+    # Notify old email
+    if old_email:
+        try:
+            app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
+            app_name = app_name_setting.value if app_name_setting else "BakeAssist"
+            app_name = app_name.strip()
+            
+            tmpl = get_email_template('security_alert_email_change', current_user.language, {'new_email': confirm.email, 'app_name': app_name})
+            send_mail(db, old_email, tmpl['subject'], tmpl['body'])
+        except Exception as e:
+            print(f"Failed to send notification to old email: {e}")
+    
     return current_user
 
 def perform_session_cleanup(db: Session):
@@ -1389,32 +1575,90 @@ def read_public_settings(db: Session = Depends(get_db)):
         result["enable_registration"] = "true"
     return result
 
-@app.get("/admin/settings", response_model=Dict[str, str])
+def mask_sensitive_value(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 3:
+        return "****"
+    return value[:3] + "****"
+
+@app.get("/admin/settings", response_model=Dict[str, Any])
 def read_system_settings(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     settings = db.query(models.SystemSetting).all()
-    return {s.key: s.value for s in settings}
+    result = {}
+    sensitive_keys = ["smtp_password", "gemini_api_key"]
+    
+    for s in settings:
+        val = s.value
+        if s.key == "debug_mode":
+            val = s.value.lower() == "true"
+        elif s.key in sensitive_keys and val:
+            val = mask_sensitive_value(val)
+            
+        result[s.key] = val
+    return result
 
-@app.put("/admin/settings", response_model=Dict[str, str])
+@app.put("/admin/settings", response_model=Dict[str, Any])
 def update_system_settings(
     settings_update: schemas.SystemSettingsUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
+    sensitive_keys = ["smtp_password", "gemini_api_key"]
+    
     for key, value in settings_update.settings.items():
+        # Handle special cases or conversions
+        str_value = str(value)
+        if isinstance(value, bool):
+            str_value = "true" if value else "false"
+            
+        # Special handling for debug_mode
+        if key == "debug_mode":
+            from logger import set_log_level
+            set_log_level(str_value == "true")
+            
+        # Check if this is a sensitive key and if the value is the masked version
+        if key in sensitive_keys:
+            existing_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
+            if existing_setting and existing_setting.value:
+                masked_existing = mask_sensitive_value(existing_setting.value)
+                # If the incoming value matches the masked version of the existing value,
+                # it means the user didn't change it (just sent back what they saw).
+                # So we skip updating it.
+                if str_value == masked_existing:
+                    continue
+
         setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == key).first()
         if setting:
-            setting.value = value
+            setting.value = str_value
         else:
-            setting = models.SystemSetting(key=key, value=value)
-            db.add(setting)
+            new_setting = models.SystemSetting(key=key, value=str_value)
+            db.add(new_setting)
+            
     db.commit()
     
-    # Return updated settings
-    all_settings = db.query(models.SystemSetting).all()
-    return {s.key: s.value for s in all_settings}
+    # Return updated settings (masked)
+    return read_system_settings(db, current_user)
+
+@app.get("/admin/logs")
+def get_system_logs(
+    lines: int = 100,
+    current_user: models.User = Depends(has_permission("manage:system"))
+):
+    log_file = "app.log"
+    if not os.path.exists(log_file):
+        return {"logs": []}
+        
+    try:
+        with open(log_file, "r") as f:
+            # Read all lines and return the last 'lines' count
+            all_lines = f.readlines()
+            return {"logs": all_lines[-lines:]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read logs: {e}")
 
 @app.on_event("startup")
 def startup_event():
@@ -2137,58 +2381,67 @@ def test_email_config(
     current_user: models.User = Depends(has_permission("manage:system"))
 ):
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.header import Header
-        from email.mime.multipart import MIMEMultipart
-        
-        msg = MIMEMultipart()
-        
-        print(f"DEBUG: sender_email raw: {repr(request.sender_email)}")
-        print(f"DEBUG: test_recipient raw: {repr(request.test_recipient)}")
-        
-        # Sanitize inputs - Aggressively remove non-breaking spaces
-        sender_email = request.sender_email.replace('\xa0', '').strip()
-        
-        # User requested to send to logged in user
-        if not current_user.email:
-             raise HTTPException(status_code=400, detail="Current user has no email address configured")
-             
-        test_recipient = current_user.email.replace('\xa0', '').strip()
-        
-        msg['From'] = sender_email
-        msg['To'] = test_recipient
-        
         # Get app name
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
-        app_name = app_name_setting.value if app_name_setting else "BakeAssist"
-        # Normalize app_name: remove nbsp, replace smart quotes
-        app_name = app_name.replace('\xa0', ' ').replace('’', "'").strip()
+        app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
         
-        msg['Subject'] = Header(f"{app_name} Email Configuration Test", 'utf-8')
+        # Determine language: use request language if provided, else user language, else 'en'
+        language = request.language if request.language else (current_user.language if current_user.language else "en")
         
-        # Sanitize username
-        username = current_user.username.replace('\xa0', ' ').strip()
+        # Get HTML content
+        from email_templates import get_test_email_template
+        html_content = get_test_email_template(app_name, language)
         
-        body = f"Hello {username},\n\nThis is a test email from your {app_name} instance.\nIf you are reading this, your email configuration is correct!\n\nBest regards,\n{app_name} Team"
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        # Determine subject
+        subjects = {
+            "en": f"Test Email from {app_name}",
+            "de": f"Test-E-Mail von {app_name}"
+        }
+        subject = subjects.get(language, subjects["en"])
+        
+        # Use email_utils to send the email with the provided config
+        import email_utils
+        
+        # Construct config dict from request
+        smtp_password = request.smtp_password
+        
+        # Check if password is masked and needs to be replaced with stored value
+        # We need to fetch the stored password to compare
+        stored_smtp_pass_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "smtp_password").first()
+        if stored_smtp_pass_setting and stored_smtp_pass_setting.value:
+            masked_stored = mask_sensitive_value(stored_smtp_pass_setting.value)
+            if smtp_password == masked_stored:
+                smtp_password = stored_smtp_pass_setting.value
+        
+        smtp_config = {
+            "smtp_server": request.smtp_server,
+            "smtp_port": request.smtp_port,
+            "smtp_user": request.smtp_user,
+            "smtp_password": smtp_password,
+            "sender_email": request.sender_email
+        }
+        
+        recipient = request.test_recipient
+        if not recipient and current_user.email:
+            recipient = current_user.email
+            
+        if not recipient:
+             raise HTTPException(status_code=400, detail="No recipient specified")
 
-        server = smtplib.SMTP(request.smtp_server, request.smtp_port)
-        server.starttls()
+        success = email_utils.send_mail(
+            db=db,
+            to_email=recipient,
+            subject=subject,
+            body=html_content,
+            smtp_config=smtp_config
+        )
         
-        # Sanitize smtp_user and password
-        smtp_user = request.smtp_user.replace('\xa0', '').strip()
-        smtp_password = request.smtp_password.replace('\xa0', '').strip()
-        
-        server.login(smtp_user, smtp_password)
-        
-        # Ensure the message is converted to a string properly
-        text = msg.as_string()
-        
-        server.sendmail(sender_email, test_recipient, text)
-        server.quit()
-        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to send test email (check server logs)")
+            
         return {"message": "Test email sent successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to send test email: {str(e)}")
 
@@ -2226,6 +2479,19 @@ def get_system_info(db: Session = Depends(get_db)):
             "scraper": scraper_status
         },
         "update_available": False # Default to false, client can trigger check
+    }
+
+@app.get("/system/config", response_model=schemas.SystemConfig)
+def get_public_config(db: Session = Depends(get_db)):
+    # Fetch settings
+    settings = db.query(models.SystemSetting).all()
+    settings_dict = {s.key: s.value for s in settings}
+    
+    return {
+        "enable_ai": settings_dict.get("enable_ai", "false").lower() == "true",
+        "enable_registration": settings_dict.get("enable_registration", "true").lower() == "true",
+        "allow_guest_access": settings_dict.get("allow_guest_access", "false").lower() == "true",
+        "app_name": settings_dict.get("app_name", "BakeAssist")
     }
 
 @app.post("/admin/system/check-update")

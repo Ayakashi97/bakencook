@@ -19,7 +19,7 @@ export default function Register() {
     const [isVerifying, setIsVerifying] = useState(false);
 
     const navigate = useNavigate();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { login, user, isLoading: authLoading } = useAuth();
     const { appName, faviconUrl, enableRegistration, isLoading: settingsLoading } = useSystemSettings();
 
@@ -56,7 +56,7 @@ export default function Register() {
         setError('');
 
         try {
-            const res = await api.post('/register', { username, password, email });
+            const res = await api.post('/register', { username, password, email, language: i18n.language });
             if (res.data.is_verified === false) {
                 setNeedsVerification(true);
             } else {

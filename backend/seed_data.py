@@ -7,7 +7,8 @@ def seed_data():
     db = SessionLocal()
     try:
         # 1. Seed Units
-        print("Seeding Units...")
+        from logger import logger
+        logger.info("Seeding Units...")
         units_data = [
             {"name": {"en": {"singular": "g", "plural": "g"}, "de": {"singular": "g", "plural": "g"}}, "description": {"en": "Gram", "de": "Gramm"}},
             {"name": {"en": {"singular": "kg", "plural": "kg"}, "de": {"singular": "kg", "plural": "kg"}}, "description": {"en": "Kilogram", "de": "Kilogramm"}},
@@ -59,11 +60,11 @@ def seed_data():
                     db.commit()
                     db.refresh(new_unit)
                     unit_map[target_en_singular] = new_unit.id
-                    print(f"  Created unit: {target_en_singular}")
+                    logger.info(f"  Created unit: {target_en_singular}")
                     all_units.append(new_unit) # Add to local list for next iterations
                 except Exception as e:
                     db.rollback()
-                    print(f"  Failed to create unit {target_en_singular}: {e}")
+                    logger.error(f"  Failed to create unit {target_en_singular}: {e}")
             else:
                 # Update if needed (structure or description)
                 updated = False
@@ -80,12 +81,12 @@ def seed_data():
                     # Upgrade to new structure
                     existing.name = u_data["name"]
                     updated = True
-                    print(f"  Upgrading unit structure for: {target_en_singular}")
+                    logger.info(f"  Upgrading unit structure for: {target_en_singular}")
 
                 if not existing.description or existing.description != u_data["description"]:
                     existing.description = u_data["description"]
                     updated = True
-                    print(f"  Updating description for: {target_en_singular}")
+                    logger.info(f"  Updating description for: {target_en_singular}")
                 
                 if updated:
                     try:
@@ -93,9 +94,9 @@ def seed_data():
                         db.commit()
                     except Exception as e:
                         db.rollback()
-                        print(f"  Failed to update unit {target_en_singular}: {e}")
+                        logger.error(f"  Failed to update unit {target_en_singular}: {e}")
                 else:
-                    print(f"  Unit exists and up to date: {target_en_singular}")
+                    logger.debug(f"  Unit exists and up to date: {target_en_singular}")
                 
                 unit_map[target_en_singular] = existing.id
 
@@ -144,7 +145,7 @@ def seed_data():
             {"name": {"en": {"singular": "Oats", "plural": "Oats"}, "de": {"singular": "Haferflocken", "plural": "Haferflocken"}}, "unit": "g"},
         ]
         
-        print("Seeding Ingredients...")
+        logger.info("Seeding Ingredients...")
         all_ingredients = db.query(models.IngredientItem).all()
         
         for ing_data in ingredients_data:
@@ -184,20 +185,20 @@ def seed_data():
                         )
                         db.add(new_ing)
                         db.commit() # Commit each to avoid rollback of all
-                        print(f"  Created ingredient: {target_en_singular}")
+                        logger.info(f"  Created ingredient: {target_en_singular}")
                         all_ingredients.append(new_ing)
                     except Exception as e:
                         db.rollback()
-                        print(f"  Failed to create ingredient {target_en_singular}: {e}")
+                        logger.error(f"  Failed to create ingredient {target_en_singular}: {e}")
                 else:
-                    print(f"  Skipping {target_en_singular}: Unit {unit_name} not found")
+                    logger.warning(f"  Skipping {target_en_singular}: Unit {unit_name} not found")
             else:
-                print(f"  Ingredient exists: {target_en_singular}")
+                logger.debug(f"  Ingredient exists: {target_en_singular}")
                 
-        print("Seeding completed.")
+        logger.info("Seeding completed.")
 
     except Exception as e:
-        print(f"Error seeding data: {e}")
+        logger.error(f"Error seeding data: {e}")
         db.rollback()
     finally:
         db.close()

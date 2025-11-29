@@ -82,7 +82,8 @@ async def parse_recipe_from_text(text: str, source_url: str = None, language: st
 
     try:
         response = model.generate_content(prompt)
-        print(f"Gemini Response: {response.text}") # DEBUG
+        from logger import logger
+        logger.debug(f"Gemini Response: {response.text}") # DEBUG
         
         # Robust JSON extraction
         import re
@@ -107,7 +108,8 @@ async def parse_recipe_from_text(text: str, source_url: str = None, language: st
         
         return data
     except Exception as e:
-        print(f"Error parsing with AI: {e}")
+        from logger import logger
+        logger.error(f"Error parsing with AI: {e}")
         # Return a dummy structure or raise
         raise e
 
@@ -138,7 +140,8 @@ async def translate_ingredient(name: str, api_key: str = None) -> dict:
         cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(cleaned_text)
     except Exception as e:
-        print(f"Error translating: {e}")
+        from logger import logger
+        logger.error(f"Error translating: {e}")
         # Fallback structure
         return {
             "en": {"singular": name, "plural": name},

@@ -83,6 +83,7 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.user)
     email = Column(String, unique=True, nullable=True)
     is_verified = Column(Boolean, default=False)
+    language = Column(String, default="en") # User's preferred language
     role_id = Column(String, ForeignKey("roles.id"), nullable=True)
     api_key = Column(String, unique=True, nullable=True, index=True) # New API Key field
     role_rel = relationship("Role", back_populates="users")

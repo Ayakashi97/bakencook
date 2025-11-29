@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.13] - 2025-11-29
+### Changes
+- feat: Introduce system configuration API and UI to conditionally enable/disable AI recipe import functionality.
+- feat: Add new profile tab translations for settings and danger, and remove duplicate/redundant i18n keys.
+- feat: Add i18n keys for email verification and profile settings, and remove backend request logging, validation handler, and verbose logging.
+- feat: Add email verification for user settings, implement request logging and validation error handling, and update profile UI to support verification flow.
+- feat: Mask sensitive API keys and passwords in admin settings API and add password visibility toggle to frontend.
+- feat: Add language parameter to email settings and test endpoint, and make test recipient optional.
+- feat: Add test email template, enhance SMTP configuration, improve system settings management, and enable file logging.
+- feat: add i18n keys for debug mode settings
+- feat: implement structured logging, add debug mode setting, and introduce security headers.
+- feat: implement multi-language email templates and user language preference with database migration
+- feat: Add `send_verification_email` helper and notify old email address upon account email change.
+- feat: Add German translations for profile email confirmation and common terms
+- refactor: extract `OverviewTab` into a separate component for better organization and reusability.
+- feat: Implement email verification flow for profile email changes, including new UI, backend logic, and translations.
+- feat: Implement email update functionality on the profile page and correct global search API endpoint.
+
 ## [1.0.12] - 2025-11-29
 ### Changes
 - fix: improve latest tag retrieval by using Python for semantic version sorting

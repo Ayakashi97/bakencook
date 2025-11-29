@@ -56,5 +56,6 @@ async def scrape_url(url: str) -> str:
         return text
 
     except Exception as e:
-        print(f"Scraping error {url}: {e}")
+        from logger import logger
+        logger.error(f"Scraping error {url}: {e}")
         return ""

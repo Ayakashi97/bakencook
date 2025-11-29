@@ -19,6 +19,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     email: EmailStr # Make email mandatory for registration
+    language: Optional[str] = "en"
 
 class UserChangePassword(BaseModel):
     old_password: str
@@ -82,10 +83,12 @@ class User(UserBase):
     role: str
     is_active: bool
     is_verified: bool = False
+    verification_pending: Optional[bool] = False
     role_id: Optional[str] = None
     role_rel: Optional[Role] = None
     session_duration_minutes: int = 60
     api_key: Optional[str] = None
+    language: str = "en"
 
     class Config:
         from_attributes = True
@@ -93,9 +96,15 @@ class User(UserBase):
 class UserUpdateSettings(BaseModel):
     session_duration_minutes: int
     email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    language: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str
+
+class EmailChangeConfirm(BaseModel):
+    code: str
+    email: EmailStr
 
 class UserAdminCreate(BaseModel):
     username: str
@@ -118,7 +127,8 @@ class EmailTestRequest(BaseModel):
     smtp_user: str
     smtp_password: str
     sender_email: str
-    test_recipient: str
+    test_recipient: Optional[str] = None
+    language: Optional[str] = None
 
 class IngredientBase(BaseModel):
     name: Dict[str, str] # {"en": "Flour", "de": "Mehl"}
@@ -309,6 +319,12 @@ class SystemInfo(BaseModel):
     message: Optional[str] = None
     services: Optional[Dict[str, str]] = None
 
+class SystemConfig(BaseModel):
+    enable_ai: bool
+    enable_registration: bool
+    allow_guest_access: bool
+    app_name: str
+
 class SystemSetting(BaseModel):
     key: str
     value: str
@@ -317,7 +333,7 @@ class SystemSetting(BaseModel):
         from_attributes = True
 
 class SystemSettingsUpdate(BaseModel):
-    settings: Dict[str, str]
+    settings: Dict[str, Any]
 
 class SystemInit(BaseModel):
     admin_username: str

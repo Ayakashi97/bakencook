@@ -193,7 +193,8 @@ def seed_data_extended():
             db.add(new_ing)
             
     db.commit()
-    print("Extended data seeding completed.")
+    from logger import logger
+    logger.info("Extended data seeding completed.")
 
 if __name__ == "__main__":
     seed_data_extended()

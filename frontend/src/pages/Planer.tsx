@@ -4,7 +4,7 @@ import { api, Recipe } from '../lib/api';
 import {
     format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
     eachDayOfInterval, addMonths, addWeeks, subWeeks,
-    addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay
+    addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay, addMinutes
 } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Search, Check, Pencil, Clock, Trash2, ChefHat, List, Activity } from 'lucide-react';
@@ -271,12 +271,29 @@ export default function Planer() {
                 }
             }
 
+            let finalTargetTime = targetTime + ":00Z";
+
+            // If mode is 'start' and we have a recipe, calculate target time based on duration
+            if (timeMode === 'start' && eventType === 'recipe' && selectedRecipeId) {
+                const recipe = recipes?.find(r => r.id === selectedRecipeId);
+                if (recipe) {
+                    // Calculate total duration
+                    const totalDuration = recipe.chapters.reduce((acc, chapter) => {
+                        return acc + chapter.steps.reduce((sAcc, step) => sAcc + step.duration_min, 0);
+                    }, 0);
+
+                    const startDate = parseISO(targetTime);
+                    const targetDate = addMinutes(startDate, totalDuration);
+                    finalTargetTime = format(targetDate, "yyyy-MM-dd'T'HH:mm:00'Z'");
+                }
+            }
+
             const payload = {
-                recipe_id: eventType === 'recipe' ? selectedRecipeId : null,
+                recipe_id: (eventType === 'recipe' && selectedRecipeId) ? selectedRecipeId : null,
                 title: eventType === 'custom' ? customTitle : null,
                 event_type: eventType === 'recipe' ? 'baking' : 'custom',
-                target_time: targetTime + ":00Z",
-                start_time: targetTime + ":00Z",
+                target_time: finalTargetTime,
+                start_time: finalTargetTime, // Backend might use this or target_time, but usually target_time is key for baking
                 recurrence_rule: rrule,
                 real_temperature: eventType === 'recipe' ? realTemperature : null
             };
@@ -348,6 +365,10 @@ export default function Planer() {
         setShowAddModal(true);
     };
 
+    // Validation Logic
+    const isValid = targetTime &&
+        ((eventType === 'recipe' && selectedRecipeId) || (eventType === 'custom' && customTitle));
+
     // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -359,10 +380,6 @@ export default function Planer() {
 
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault(); // Prevent browser save
-                // Check validity before saving
-                const isValid = targetTime &&
-                    ((eventType === 'recipe' && selectedRecipeId) || (eventType === 'custom' && customTitle));
-
                 if (isValid) {
                     createScheduleMutation.mutate();
                 }
@@ -371,7 +388,7 @@ export default function Planer() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showAddModal, targetTime, eventType, selectedRecipeId, customTitle, createScheduleMutation]);
+    }, [showAddModal, isValid, createScheduleMutation]);
 
     // Navigation Logic
     const next = () => {
@@ -699,7 +716,7 @@ export default function Planer() {
                                                 setEditingEventId(event.scheduleId);
                                                 const original = schedules?.find(s => s.id === event.scheduleId);
                                                 if (original) {
-                                                    setEventType(original.event_type as any);
+                                                    setEventType(original.event_type === 'baking' ? 'recipe' : 'custom');
                                                     setCustomTitle(original.title || '');
                                                     setSelectedRecipeId(original.recipe_id || '');
                                                     setTargetTime(format(parseISO(original.target_time), "yyyy-MM-dd'T'HH:mm"));
@@ -1034,7 +1051,7 @@ export default function Planer() {
                                 )}<Button variant="ghost" onClick={() => setShowAddModal(false)}>
                                     {t('common.cancel')}
                                 </Button>
-                                <Button onClick={() => createScheduleMutation.mutate()} disabled={createScheduleMutation.isPending}>
+                                <Button onClick={() => createScheduleMutation.mutate()} disabled={!isValid || createScheduleMutation.isPending}>
                                     {createScheduleMutation.isPending ? (
                                         <>
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

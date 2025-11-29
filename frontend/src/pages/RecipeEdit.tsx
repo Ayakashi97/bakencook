@@ -841,8 +841,8 @@ export default function RecipeEdit() {
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <h3 className="text-xl font-semibold">Chapters</h3>
-                        <Button type="button" variant="ghost" onClick={addChapter} className="text-primary hover:text-primary/90 p-0 h-auto hover:bg-transparent">
-                            <Plus className="h-4 w-4 mr-1" /> Add Chapter
+                        <Button type="button" variant="ghost" onClick={addChapter} className="text-primary hover:text-primary/90 p-0 h-9 w-9 hover:bg-transparent rounded-md border shadow-sm flex items-center justify-center" title="Add Chapter">
+                            <Plus className="h-4 w-4" />
                         </Button>
                     </div>
 
@@ -864,8 +864,8 @@ export default function RecipeEdit() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-medium text-sm text-muted-foreground">{t('recipe.ingredients')}</h4>
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => addIngredient(chapterIdx)} className="text-primary h-auto p-0 hover:bg-transparent hover:underline">
-                                        <Plus className="h-3 w-3 mr-1" /> {t('edit.add_ingredient')}
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => addIngredient(chapterIdx)} className="text-primary h-9 w-9 p-0 hover:bg-transparent hover:underline flex items-center justify-center rounded-md border shadow-sm" title={t('edit.add_ingredient')}>
+                                        <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
                                 <div className="space-y-2">
@@ -1001,8 +1001,8 @@ export default function RecipeEdit() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h4 className="font-medium text-sm text-muted-foreground">{t('recipe.steps')}</h4>
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => addStep(chapterIdx)} className="text-primary h-auto p-0 hover:bg-transparent hover:underline">
-                                        <Plus className="h-3 w-3 mr-1" /> {t('edit.add_step')}
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => addStep(chapterIdx)} className="text-primary h-9 w-9 p-0 hover:bg-transparent hover:underline flex items-center justify-center rounded-md border shadow-sm" title={t('edit.add_step')}>
+                                        <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
                                 <div className="space-y-4">

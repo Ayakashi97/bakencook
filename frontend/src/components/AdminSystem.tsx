@@ -15,16 +15,9 @@ export default function AdminSystem() {
 
     return (
         <div className="space-y-6">
-            <div className="glass-card rounded-xl overflow-hidden">
-                {/* Header Removed as requested */}
-                {/* <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 bg-white/5 backdrop-blur-sm">
-                    <h2 className="font-semibold flex items-center gap-2 shrink-0">
-                        <Server className="h-5 w-5" /> {t('admin.server_mgmt') || "Server Management"}
-                    </h2>
-                </div> */}
-
-                <div className="border-b border-white/10">
-                    <nav className="flex -mb-px px-6 overflow-x-auto">
+            <div className="glass-card rounded-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+                <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-white/5 backdrop-blur-sm">
+                    <nav className="flex md:flex-col p-2 gap-1">
                         {[
                             { id: 'general', label: t('admin.settings_general', 'General'), icon: Globe },
                             { id: 'access', label: t('admin.settings_access', 'Access & Security'), icon: Shield },
@@ -35,27 +28,26 @@ export default function AdminSystem() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
-                                    "group inline-flex items-center py-4 px-4 border-b-2 font-medium text-sm whitespace-nowrap gap-2 transition-colors",
+                                    "group flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-all",
                                     activeTab === tab.id
-                                        ? "border-primary text-primary"
-                                        : "border-transparent text-muted-foreground hover:text-foreground hover:border-white/20"
+                                        ? "bg-primary/10 text-primary shadow-sm"
+                                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                                 )}
                             >
-                                <tab.icon className="h-4 w-4" />
+                                <tab.icon className={cn("mr-3 h-4 w-4", activeTab === tab.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                                 {tab.label}
                             </button>
                         ))}
                     </nav>
                 </div>
 
-                <div className="p-6">
+                <div className="flex-1 p-6 bg-background/30">
                     {activeTab === 'general' && <GeneralSettings />}
                     {activeTab === 'access' && <AccessSettings />}
                     {activeTab === 'ai' && <AISettings />}
                     {activeTab === 'email' && <EmailSettings />}
                 </div>
             </div>
-
         </div>
     );
 }

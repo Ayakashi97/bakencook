@@ -467,9 +467,8 @@ export default function Planer() {
                     </button>
                 </div>
 
-                <Button onClick={() => handleAddEvent()} size="sm" className="gap-2 ml-2">
+                <Button onClick={() => handleAddEvent()} size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('planer.add_event')}>
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t('planer.add_event')}</span>
                 </Button>
             </div>
 

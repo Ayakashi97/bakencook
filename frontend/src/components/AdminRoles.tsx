@@ -186,9 +186,10 @@ export default function AdminRoles() {
                         </div>
                         <button
                             onClick={handleCreate}
-                            className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2 text-sm font-medium shadow-sm w-full sm:w-auto"
+                            className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center shadow-sm"
+                            title={t('admin.add_role')}
                         >
-                            <Plus className="h-3.5 w-3.5" /> {t('admin.add_role')}
+                            <Plus className="h-4 w-4" />
                         </button>
                     </div>
                 </div>

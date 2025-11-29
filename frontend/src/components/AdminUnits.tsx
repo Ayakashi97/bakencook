@@ -327,9 +327,10 @@ export default function AdminUnits() {
 
                             <button
                                 onClick={handleCreate}
-                                className="h-9 px-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2 text-sm font-medium transition-colors shadow-sm"
+                                className="h-9 w-9 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm"
+                                title={t('admin.add_unit')}
                             >
-                                <Plus className="h-4 w-4" /> {t('admin.add_unit')}
+                                <Plus className="h-4 w-4" />
                             </button>
                         </div>
                     </div>

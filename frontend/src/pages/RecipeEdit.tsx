@@ -1100,6 +1100,12 @@ export default function RecipeEdit() {
             <ImportProgressModal
                 isOpen={isImporting}
                 onClose={() => {
+                    if (importStatus === 'completed' && importedData) {
+                        // Apply data if manually closed on success
+                        setFormData(importedData);
+                        setReviewMode(true);
+                        setImportedData(null);
+                    }
                     setIsImporting(false);
                     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
                 }}

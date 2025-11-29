@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, File, BackgroundTasks, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
@@ -2195,7 +2195,7 @@ def rate_recipe(
 @app.post("/import/image", response_model=schemas.RecipeCreate)
 async def import_from_image(
     file: UploadFile = File(...),
-    language: str = "en",
+    language: str = Form("en"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):

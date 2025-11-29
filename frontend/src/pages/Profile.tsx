@@ -9,9 +9,8 @@ import {
     Smartphone, Monitor, Globe, Clock, Settings, ShieldAlert, User, List, Copy, RefreshCw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../lib/utils';
-import { PageHeader } from '../components/ui/PageHeader';
 import { Modal } from '../components/Modal';
+import { GlassTabs } from '../components/ui/GlassTabs';
 
 interface UserSession {
     id: string;
@@ -623,38 +622,25 @@ export default function Profile() {
 
 
     return (
-        <div className="w-full space-y-8">
-            <PageHeader
-                title={t('profile.title')}
-            />
+        <div className="w-full space-y-6">
+            {/* Hidden Header as requested */}
+            {/* <PageHeader title={t('profile.title')} /> */}
 
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar Navigation */}
-                <aside className="w-full lg:w-64 shrink-0">
-                    <nav className="flex flex-col gap-2 glass-panel p-4 rounded-xl">
-                        {[
+            <div className="flex flex-col gap-6">
+                {/* Top Tabs Navigation */}
+                <div className="w-full overflow-x-auto">
+                    <GlassTabs
+                        activeTab={activeTab}
+                        onChange={(id) => setActiveTab(id as any)}
+                        tabs={[
                             { id: 'overview', label: t('profile.tabs.overview'), icon: User },
                             { id: 'sessions', label: t('profile.tabs.sessions'), icon: List },
                             { id: 'api', label: "API Access", icon: KeyRound },
                             { id: 'settings', label: t('profile.tabs.settings'), icon: Settings },
                             { id: 'danger', label: t('profile.tabs.danger'), icon: AlertTriangle },
-                        ].map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => setActiveTab(item.id as any)}
-                                className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
-                                    activeTab === item.id
-                                        ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                <item.icon className="h-4 w-4" />
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
-                </aside>
+                        ]}
+                    />
+                </div>
 
                 {/* Content Area */}
                 <div className="flex-1 min-w-0">

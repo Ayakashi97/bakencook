@@ -14,6 +14,7 @@ import AdminSystem from '../components/AdminSystem';
 import SystemStatus from '../components/SystemStatus';
 import { Modal } from '../components/Modal';
 import { Pagination } from '../components/Pagination';
+import { GlassTabs } from '../components/ui/GlassTabs';
 
 interface User {
     id: string;
@@ -650,12 +651,14 @@ export default function AdminDashboard() {
 
 
     return (
-        <div className="w-full space-y-8">
-            <div className="flex flex-col lg:flex-row gap-8">
-                {/* Sidebar Navigation */}
-                <aside className="w-full lg:w-64 shrink-0">
-                    <nav className="flex flex-col gap-2 glass-panel p-4 rounded-xl">
-                        {[
+        <div className="w-full space-y-6">
+            <div className="flex flex-col gap-6">
+                {/* Top Tabs Navigation */}
+                <div className="w-full overflow-x-auto">
+                    <GlassTabs
+                        activeTab={activeTab}
+                        onChange={(id) => setActiveTab(id as any)}
+                        tabs={[
                             { id: 'users', label: t('admin.tab_users'), icon: Users, perm: 'manage:users' },
                             { id: 'roles', label: t('admin.tab_roles'), icon: Lock, perm: 'manage:roles' },
                             { id: 'units', label: t('admin.tab_units'), icon: Scale, perm: 'manage:units' },
@@ -666,23 +669,13 @@ export default function AdminDashboard() {
                             .filter(item => {
                                 return hasPermission(item.perm) || user?.role === 'admin';
                             })
-                            .map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id as any)}
-                                    className={cn(
-                                        "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
-                                        activeTab === item.id
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
-                                </button>
-                            ))}
-                    </nav>
-                </aside>
+                            .map(item => ({
+                                id: item.id,
+                                label: item.label,
+                                icon: item.icon
+                            }))}
+                    />
+                </div>
 
                 {/* Content Area */}
                 <div className="flex-1 min-w-0">

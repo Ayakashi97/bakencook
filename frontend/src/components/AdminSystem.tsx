@@ -364,7 +364,8 @@ function EmailSettings() {
             smtp_user: data.smtp_user,
             smtp_password: data.smtp_password,
             sender_email: data.smtp_from_email,
-            test_recipient: data.smtp_from_email // Send to self
+            test_recipient: data.smtp_from_email, // Send to self
+            language: i18n.language
         }),
         onSuccess: () => {
             toast.success(t('admin.email_test_success', 'Test email sent successfully!'));

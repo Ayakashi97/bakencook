@@ -2363,8 +2363,8 @@ def test_email_config(
         app_name_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "app_name").first()
         app_name = app_name_setting.value if app_name_setting else "Bake'n'Cook"
         
-        # Determine language
-        language = current_user.language if current_user.language else "en"
+        # Determine language: use request language if provided, else user language, else 'en'
+        language = request.language if request.language else (current_user.language if current_user.language else "en")
         
         # Get HTML content
         from email_templates import get_test_email_template

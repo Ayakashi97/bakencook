@@ -127,7 +127,8 @@ class EmailTestRequest(BaseModel):
     smtp_user: str
     smtp_password: str
     sender_email: str
-    test_recipient: str
+    test_recipient: Optional[str] = None
+    language: Optional[str] = None
 
 class IngredientBase(BaseModel):
     name: Dict[str, str] # {"en": "Flour", "de": "Mehl"}

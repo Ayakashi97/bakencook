@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Plus, Loader2, Edit2, Save, Scale, AlertTriangle, Upload, Download, Search, MoreHorizontal } from 'lucide-react';
+import { Trash2, Plus, Loader2, Edit2, Save, Scale, AlertTriangle, Upload, Download, Search, MoreHorizontal, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 
@@ -276,13 +276,24 @@ export default function AdminUnits() {
                             <input
                                 type="text"
                                 placeholder={t('admin.search') || "Search..."}
-                                className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="relative">

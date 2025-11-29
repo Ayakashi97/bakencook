@@ -696,7 +696,30 @@ def refresh_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/users/me", response_model=schemas.User)
-def read_users_me(current_user: models.User = Depends(get_current_user)):
+def read_users_me(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Calculate stats
+    # Average rating of recipes owned by user
+    # We need to join Recipe and Rating
+    # But Recipe has a relationship 'ratings'
+    
+    # Get all recipe IDs owned by user
+    recipe_ids = db.query(models.Recipe.id).filter(models.Recipe.user_id == current_user.id).all()
+    recipe_ids = [r[0] for r in recipe_ids]
+    
+    if recipe_ids:
+        avg_rating = db.query(func.avg(models.Rating.score)).filter(models.Rating.recipe_id.in_(recipe_ids)).scalar()
+        rating_count = db.query(func.count(models.Rating.score)).filter(models.Rating.recipe_id.in_(recipe_ids)).scalar()
+    else:
+        avg_rating = 0.0
+        rating_count = 0
+        
+    # Attach to user object (schema must have these fields)
+    current_user.average_rating = round(avg_rating, 1) if avg_rating else 0.0
+    current_user.rating_count = rating_count if rating_count else 0
+    
     return current_user
 
 @app.post("/auth/change-password")
@@ -1411,6 +1434,14 @@ def update_settings(
 ):
     if settings.session_duration_minutes < 1 or settings.session_duration_minutes > 43200:
         raise HTTPException(status_code=400, detail="Session duration must be between 1 minute and 30 days")
+        
+    # Handle Username Update
+    if settings.username and settings.username != current_user.username:
+        # Check if username is taken
+        existing_username = db.query(models.User).filter(models.User.username == settings.username).first()
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        current_user.username = settings.username
         
     # Handle Email Update
     if settings.email and settings.email != current_user.email:

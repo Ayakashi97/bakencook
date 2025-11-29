@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api, RecipePage } from '../lib/api';
-import { Clock, Users, ChefHat, Search, Star, Heart, Plus } from 'lucide-react';
+import { Clock, Users, ChefHat, Search, Star, Heart, Plus, Compass, BookOpen, Utensils, Cake, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
 import { Pagination } from '../components/Pagination';
@@ -62,10 +62,10 @@ export default function Dashboard() {
                         activeTab={activeTab}
                         onChange={(id) => { setActiveTab(id as any); setPage(1); }}
                         tabs={[
-                            { id: 'discover', label: t('dashboard.discover', 'Entdecken') },
-                            { id: 'my_recipes', label: t('dashboard.my_recipes', 'Meine Rezepte') },
-                            { id: 'cooking', label: t('recipe.type.cooking', 'Kochen') },
-                            { id: 'baking', label: t('recipe.type.baking', 'Backen') },
+                            { id: 'discover', label: t('dashboard.discover', 'Entdecken'), icon: Compass },
+                            { id: 'my_recipes', label: t('dashboard.my_recipes', 'Meine Rezepte'), icon: BookOpen },
+                            { id: 'cooking', label: t('recipe.type.cooking', 'Kochen'), icon: Utensils },
+                            { id: 'baking', label: t('recipe.type.baking', 'Backen'), icon: Cake },
                         ]}
                     />
                 </div>
@@ -85,10 +85,19 @@ export default function Dashboard() {
                         <input
                             type="text"
                             placeholder={t('dashboard.search_placeholder', 'Suche nach Rezepten...')}
-                            className="w-full pl-9 pr-4 py-2 border rounded-md bg-background"
+                            className="w-full pl-9 pr-10 py-2 border rounded-md bg-background"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
 
                 </form>

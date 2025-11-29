@@ -3,14 +3,14 @@ import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
 import { api } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle, MoreHorizontal, Utensils } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, AlertTriangle, Upload, Download, CheckCircle, MoreHorizontal, Utensils, X } from 'lucide-react';
 import { Modal } from './Modal';
 import { Pagination } from './Pagination';
 import { IngredientFormModal } from './IngredientFormModal';
 
 interface Ingredient {
     id: number;
-    name: any; // JSON: { "en": { "singular": "...", "plural": "..." }, "de": ... }
+    name: any; // JSON: {"en": {"singular": "...", "plural": "..." }, "de": ... }
     linked_recipe_id?: string; // UUID string
     default_unit_id?: number;
     is_verified?: boolean;
@@ -251,13 +251,24 @@ export default function AdminIngredients() {
                             <input
                                 type="text"
                                 placeholder={t('admin.search') || "Search..."}
-                                className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto relative">
                             <div className="relative">
@@ -358,7 +369,7 @@ export default function AdminIngredients() {
                             <tr>
                                 <th className="px-6 py-3">{t('admin.ingredient_name')}</th>
                                 <th className="px-6 py-3">{t('admin.default_unit')}</th>
-                                <th className="px-6 py-3">{t('admin.linked_recipe')}</th>
+                                {/* Removed Linked Recipe Column */}
                                 <th className="px-6 py-3">{t('admin.status')}</th>
                                 <th className="px-6 py-3 text-right">{t('admin.actions')}</th>
                             </tr>
@@ -366,13 +377,13 @@ export default function AdminIngredients() {
                         <tbody className="divide-y divide-white/10">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <td colSpan={4} className="h-24 text-center text-muted-foreground">
                                         {t('common.loading')}
                                     </td>
                                 </tr>
                             ) : ingredients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    <td colSpan={4} className="h-24 text-center text-muted-foreground">
                                         {t('admin.no_ingredients')}
                                     </td>
                                 </tr>
@@ -383,9 +394,7 @@ export default function AdminIngredients() {
                                         <td className="px-6 py-4 text-muted-foreground">
                                             {getUnitName(ingredient.default_unit_id)}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            {recipes.find(r => r && r.id === ingredient.linked_recipe_id)?.title || '-'}
-                                        </td>
+                                        {/* Removed Linked Recipe Cell */}
                                         <td className="px-6 py-4">
                                             {ingredient.is_verified ? (
                                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
@@ -454,7 +463,7 @@ export default function AdminIngredients() {
                                 </div>
                                 <div className="text-sm text-muted-foreground flex justify-between">
                                     <span>{t('admin.default_unit')}: {getUnitName(ingredient.default_unit_id)}</span>
-                                    <span>{recipes.find(r => r && r.id === ingredient.linked_recipe_id)?.title || '-'}</span>
+                                    {/* Removed Linked Recipe Info */}
                                 </div>
                                 <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
                                     {!ingredient.is_verified && (

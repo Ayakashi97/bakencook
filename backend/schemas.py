@@ -89,6 +89,9 @@ class User(UserBase):
     session_duration_minutes: int = 60
     api_key: Optional[str] = None
     language: str = "en"
+    created_at: Optional[datetime] = None
+    average_rating: Optional[float] = 0.0
+    rating_count: Optional[int] = 0
 
     class Config:
         from_attributes = True
@@ -98,6 +101,7 @@ class UserUpdateSettings(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     language: Optional[str] = None
+    username: Optional[str] = None
 
 class VerifyEmailRequest(BaseModel):
     token: str

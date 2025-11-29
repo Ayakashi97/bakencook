@@ -7,12 +7,11 @@ import { useAuth } from '../context/AuthContext';
 import {
     Loader2, Download, Trash2, LogOut, KeyRound, AlertTriangle,
     Smartphone, Monitor, Globe, Clock, Settings, ShieldAlert, User, List, Copy, RefreshCw,
-    CheckCircle, BarChart3, Utensils, Sun, Moon, Laptop
+    CheckCircle, Utensils
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../components/Modal';
 import { GlassTabs } from '../components/ui/GlassTabs';
-import { useTheme } from '../components/ThemeProvider';
 
 interface UserSession {
     id: string;
@@ -42,13 +41,17 @@ const OverviewTab = ({
     changePasswordMutation: any;
     updateSettingsMutation: any;
 }) => {
-    const { t, i18n } = useTranslation();
-    const { theme, setTheme } = useTheme();
+    const { t } = useTranslation();
+
     const [passwords, setPasswords] = useState({ old: '', new: '' });
     const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     // Session Duration State
     const [duration, setDuration] = useState(user?.session_duration_minutes || 60);
+
+    // Username State
+    const [username, setUsername] = useState(user?.username || '');
+    const [isEditingUsername, setIsEditingUsername] = useState(false);
 
     // Fetch recipe count for stats
     const { data: recipeData } = useQuery({
@@ -73,6 +76,25 @@ const OverviewTab = ({
         });
     };
 
+    const handleUsernameSave = () => {
+        if (username === user?.username) {
+            setIsEditingUsername(false);
+            return;
+        }
+        updateSettingsMutation.mutate({
+            session_duration_minutes: user?.session_duration_minutes,
+            username: username
+        }, {
+            onSuccess: () => {
+                setIsEditingUsername(false);
+                toast.success(t('profile.username_updated') || "Username updated");
+            },
+            onError: () => {
+                setUsername(user?.username || ''); // Revert on error
+            }
+        });
+    };
+
     const handleExport = async () => {
         try {
             const res = await api.get('/users/me/export');
@@ -88,140 +110,211 @@ const OverviewTab = ({
         }
     };
 
-    const handleLanguageChange = (lang: string) => {
-        i18n.changeLanguage(lang);
-        updateSettingsMutation.mutate({ language: lang });
-    };
-
-
+    // Format Member Since
+    const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown';
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Left Column */}
-            <div className="md:col-span-2 space-y-6">
-                {/* Main Profile Card */}
-                <div className="glass-card rounded-xl p-6 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
+        <div className="space-y-6">
+            {/* Header Stats Card */}
+            <div className="glass-card rounded-xl p-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/20 to-secondary/20" />
 
-                    <div className="relative flex flex-col sm:flex-row gap-6 items-start mt-4">
-                        <div className="w-24 h-24 rounded-full bg-background border-4 border-background/50 shadow-xl flex items-center justify-center text-primary text-4xl font-bold shrink-0">
+                <div className="relative flex flex-col md:flex-row gap-8 items-start mt-4">
+                    {/* Avatar & Basic Info */}
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 rounded-full bg-background border-4 border-background/50 shadow-xl flex items-center justify-center text-primary text-3xl font-bold shrink-0">
                             {user?.username.charAt(0).toUpperCase()}
                         </div>
-
-                        <div className="flex-1 w-full space-y-4">
-                            <div>
-                                <h2 className="text-2xl font-bold">{user?.username}</h2>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
-                                        {user?.role}
+                        <div>
+                            <h2 className="text-2xl font-bold">{user?.username}</h2>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
+                                    {user?.role}
+                                </span>
+                                {user?.is_active && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                                        <CheckCircle className="w-3 h-3" /> Active
                                     </span>
-                                    {user?.is_active && (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
-                                            <CheckCircle className="w-3 h-3" /> Active
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-white/10 w-full">
-                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
-                                    {t('profile.email') || "Email Address"}
-                                </label>
-                                <div className="flex gap-2 max-w-md">
-                                    <input
-                                        type="email"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm focus:bg-background transition-colors disabled:opacity-50"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="user@example.com"
-                                        disabled={!isEditingEmail}
-                                    />
-                                    {!isEditingEmail ? (
-                                        <button
-                                            onClick={() => setIsEditingEmail(true)}
-                                            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors shadow-sm"
-                                        >
-                                            {t('common.edit') || "Edit"}
-                                        </button>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setEmail(user?.email || '');
-                                                    setIsEditingEmail(false);
-                                                }}
-                                                className="px-3 py-2 rounded-md hover:bg-muted transition-colors"
-                                            >
-                                                {t('common.cancel') || "Cancel"}
-                                            </button>
-                                            <button
-                                                onClick={() => setShowEmailConfirmModal(true)}
-                                                disabled={!email || email === user?.email}
-                                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-sm"
-                                            >
-                                                {t('common.save') || "Save"}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Application Settings Card */}
-                <div className="glass-card rounded-xl p-6">
-                    <h3 className="font-semibold flex items-center gap-2 mb-6">
-                        <Settings className="w-5 h-5" /> Application Settings
+                    {/* Stats Grid */}
+                    <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 w-full md:w-auto">
+                        <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+                            <Utensils className="w-5 h-5 text-orange-500 mb-1" />
+                            <span className="text-xl font-bold">{recipeCount}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Recipes</span>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+                            <div className="flex items-center gap-1 text-yellow-500 mb-1">
+                                <span className="w-5 h-5 flex items-center justify-center">★</span>
+                            </div>
+                            <span className="text-xl font-bold">{user?.average_rating || '0.0'}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg Rating</span>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+                            <Clock className="w-5 h-5 text-blue-500 mb-1" />
+                            <span className="text-sm font-bold mt-1">{memberSince}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Member Since</span>
+                        </div>
+                        <div className="p-3 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center">
+                            <Globe className="w-5 h-5 text-purple-500 mb-1" />
+                            <span className="text-sm font-bold mt-1 uppercase">{user?.language || 'EN'}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Language</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Account Details */}
+                <div className="glass-card rounded-xl p-6 space-y-6">
+                    <h3 className="font-semibold flex items-center gap-2 border-b border-white/10 pb-3">
+                        <User className="w-4 h-4" /> Account Details
                     </h3>
 
-                    <div className="space-y-6">
-                        {/* Language & Theme Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div>
-                                <label className="text-sm font-medium mb-2 block text-muted-foreground">Language</label>
-                                <div className="flex p-1 bg-muted/50 rounded-lg border border-white/5">
-                                    {['en', 'de'].map((lang) => (
-                                        <button
-                                            key={lang}
-                                            onClick={() => handleLanguageChange(lang)}
-                                            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${i18n.language === lang
-                                                ? 'bg-background shadow-sm text-foreground'
-                                                : 'text-muted-foreground hover:text-foreground'
-                                                }`}
-                                        >
-                                            {lang === 'en' ? 'English' : 'Deutsch'}
-                                        </button>
-                                    ))}
+                    {/* Username */}
+                    <div>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+                            Username
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors disabled:opacity-50"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                disabled={!isEditingUsername}
+                            />
+                            {!isEditingUsername ? (
+                                <button
+                                    onClick={() => setIsEditingUsername(true)}
+                                    className="px-3 py-1 rounded-md hover:bg-muted transition-colors text-xs border border-white/10"
+                                >
+                                    {t('common.edit') || "Edit"}
+                                </button>
+                            ) : (
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => {
+                                            setUsername(user?.username || '');
+                                            setIsEditingUsername(false);
+                                        }}
+                                        className="px-3 py-1 rounded-md hover:bg-muted transition-colors text-xs"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleUsernameSave}
+                                        disabled={!username || username === user?.username}
+                                        className="bg-primary text-primary-foreground px-3 py-1 rounded-md hover:bg-primary/90 text-xs"
+                                    >
+                                        Save
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium mb-2 block text-muted-foreground">Theme</label>
-                                <div className="flex p-1 bg-muted/50 rounded-lg border border-white/5">
-                                    {[
-                                        { id: 'light', icon: Sun, label: 'Light' },
-                                        { id: 'dark', icon: Moon, label: 'Dark' },
-                                        { id: 'system', icon: Laptop, label: 'System' }
-                                    ].map((item) => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => setTheme(item.id as any)}
-                                            className={`flex-1 py-1.5 flex items-center justify-center gap-2 text-sm font-medium rounded-md transition-all ${theme === item.id
-                                                ? 'bg-background shadow-sm text-foreground'
-                                                : 'text-muted-foreground hover:text-foreground'
-                                                }`}
-                                            title={item.label}
-                                        >
-                                            <item.icon className="w-4 h-4" />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                            )}
                         </div>
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+                            {t('profile.email') || "Email Address"}
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="email"
+                                className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors disabled:opacity-50"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                disabled={!isEditingEmail}
+                            />
+                            {!isEditingEmail ? (
+                                <button
+                                    onClick={() => setIsEditingEmail(true)}
+                                    className="px-3 py-1 rounded-md hover:bg-muted transition-colors text-xs border border-white/10"
+                                >
+                                    {t('common.edit') || "Edit"}
+                                </button>
+                            ) : (
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => {
+                                            setEmail(user?.email || '');
+                                            setIsEditingEmail(false);
+                                        }}
+                                        className="px-3 py-1 rounded-md hover:bg-muted transition-colors text-xs"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => setShowEmailConfirmModal(true)}
+                                        disabled={!email || email === user?.email}
+                                        className="bg-primary text-primary-foreground px-3 py-1 rounded-md hover:bg-primary/90 text-xs"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Password Change */}
+                    <div className="pt-4 border-t border-white/10">
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                            <KeyRound className="h-3 w-3" /> {t('profile.change_password')}
+                        </h4>
+                        <form
+                            onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
+                            className="space-y-3"
+                        >
+                            <input type="text" autoComplete="username" className="hidden" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <input
+                                    type="password"
+                                    autoComplete="current-password"
+                                    placeholder={t('profile.old_password')}
+                                    className="flex h-8 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-xs focus:bg-background transition-colors"
+                                    value={passwords.old}
+                                    onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
+                                />
+                                <input
+                                    type="password"
+                                    autoComplete="new-password"
+                                    placeholder={t('profile.new_password')}
+                                    className="flex h-8 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-xs focus:bg-background transition-colors"
+                                    value={passwords.new}
+                                    onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                                />
+                            </div>
+                            {msg && (
+                                <div className={`text-xs ${msg.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                                    {msg.text}
+                                </div>
+                            )}
+                            <button
+                                type="submit"
+                                disabled={changePasswordMutation.isPending || !passwords.old || !passwords.new}
+                                className="w-full bg-secondary/50 text-secondary-foreground px-3 py-1.5 rounded-md hover:bg-secondary/70 disabled:opacity-50 text-xs transition-colors"
+                            >
+                                {changePasswordMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mx-auto" /> : t('profile.update_password_btn')}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {/* Settings & Export */}
+                <div className="space-y-6">
+                    {/* Application Settings */}
+                    <div className="glass-card rounded-xl p-6">
+                        <h3 className="font-semibold flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
+                            <Settings className="w-4 h-4" /> Application Settings
+                        </h3>
 
                         {/* Session Duration */}
-                        <div className="pt-6 border-t border-white/10">
+                        <div>
                             <div className="flex items-center justify-between mb-4">
                                 <label className="text-sm font-medium">Session Duration</label>
                                 <span className="text-xs font-mono bg-muted/50 px-2 py-1 rounded">
@@ -274,96 +367,22 @@ const OverviewTab = ({
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-                {/* Stats Card */}
-                <div className="glass-card rounded-xl p-6 flex flex-col justify-center space-y-6">
-                    <h3 className="font-semibold flex items-center gap-2 text-muted-foreground">
-                        <BarChart3 className="w-4 h-4" /> Statistics
-                    </h3>
-
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
-                            <div className="p-2 rounded-full bg-orange-500/10 text-orange-500">
-                                <Utensils className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">{recipeCount}</p>
-                                <p className="text-xs text-muted-foreground">Recipes Created</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 p-3 rounded-lg bg-white/5 border border-white/10">
-                            <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
-                                <Globe className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="text-lg font-medium uppercase">{user?.language || 'EN'}</p>
-                                <p className="text-xs text-muted-foreground">Language</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Password Change Section */}
-                <div className="glass-card rounded-xl p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <KeyRound className="h-4 w-4" /> {t('profile.change_password')}
-                    </h2>
-                    <form
-                        onSubmit={(e) => { e.preventDefault(); handlePasswordChange(); }}
-                        className="space-y-3"
-                    >
-                        <input type="text" autoComplete="username" className="hidden" />
-                        <input
-                            type="password"
-                            autoComplete="current-password"
-                            placeholder={t('profile.old_password')}
-                            className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors"
-                            value={passwords.old}
-                            onChange={(e) => setPasswords({ ...passwords, old: e.target.value })}
-                        />
-                        <input
-                            type="password"
-                            autoComplete="new-password"
-                            placeholder={t('profile.new_password')}
-                            className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm focus:bg-background transition-colors"
-                            value={passwords.new}
-                            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                        />
-                        {msg && (
-                            <div className={`text-xs ${msg.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-                                {msg.text}
-                            </div>
-                        )}
+                    {/* Data Export */}
+                    <div className="glass-card rounded-xl p-6 flex flex-col">
+                        <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                            <Download className="h-4 w-4" /> {t('profile.export_data')}
+                        </h2>
+                        <p className="text-xs text-muted-foreground mb-4 flex-1">
+                            {t('profile.export_desc')}
+                        </p>
                         <button
-                            type="submit"
-                            disabled={changePasswordMutation.isPending || !passwords.old || !passwords.new}
-                            className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm text-sm"
+                            onClick={handleExport}
+                            className="w-full border px-4 py-2 rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 bg-background/30 transition-colors text-sm"
                         >
-                            {changePasswordMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-                            {t('profile.update_password_btn')}
+                            <Download className="h-3 w-3" /> {t('profile.export_btn')}
                         </button>
-                    </form>
-                </div>
-
-                {/* Data Export Section */}
-                <div className="glass-card rounded-xl p-6 flex flex-col">
-                    <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                        <Download className="h-4 w-4" /> {t('profile.export_data')}
-                    </h2>
-                    <p className="text-xs text-muted-foreground mb-4 flex-1">
-                        {t('profile.export_desc')}
-                    </p>
-                    <button
-                        onClick={handleExport}
-                        className="w-full border px-4 py-2 rounded-md hover:bg-accent/50 flex items-center justify-center gap-2 bg-background/30 transition-colors text-sm"
-                    >
-                        <Download className="h-3 w-3" /> {t('profile.export_btn')}
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>

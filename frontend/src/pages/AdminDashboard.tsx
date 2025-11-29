@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { Users, Search, Plus, Edit2, Trash2, Loader2, Save, AlertTriangle, Scale, Utensils, Lock, Server, Activity } from 'lucide-react';
+import { Users, Search, Plus, Edit2, Trash2, Loader2, Save, AlertTriangle, Scale, Utensils, Lock, Server, Activity, X } from 'lucide-react';
 import AdminRoles from '../components/AdminRoles';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -249,13 +249,24 @@ export default function AdminDashboard() {
                                 <input
                                     type="text"
                                     placeholder={t('admin.search') || "Search..."}
-                                    className="w-full pl-9 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
+                                    className="w-full pl-9 pr-10 h-9 rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm transition-colors focus:bg-background"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
                                         setCurrentPage(1);
                                     }}
                                 />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            setCurrentPage(1);
+                                        }}
+                                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                             <button
                                 onClick={handleCreateUser}

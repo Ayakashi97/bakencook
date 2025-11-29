@@ -86,6 +86,7 @@ class User(Base):
     language = Column(String, default="en") # User's preferred language
     role_id = Column(String, ForeignKey("roles.id"), nullable=True)
     api_key = Column(String, unique=True, nullable=True, index=True) # New API Key field
+    created_at = Column(DateTime, default=datetime.utcnow)
     role_rel = relationship("Role", back_populates="users")
     
     recipes = relationship("Recipe", back_populates="owner")

@@ -56,25 +56,24 @@ export default function Dashboard() {
     return (
         <div className="w-full space-y-6">
             {/* Tabs & Actions */}
-            <div className="flex items-center justify-between gap-4 mb-6">
-                <div className="flex-1 overflow-x-auto">
-                    <GlassTabs
-                        activeTab={activeTab}
-                        onChange={(id) => { setActiveTab(id as any); setPage(1); }}
-                        tabs={[
-                            { id: 'discover', label: t('dashboard.discover', 'Entdecken'), icon: Compass },
-                            { id: 'my_recipes', label: t('dashboard.my_recipes', 'Meine Rezepte'), icon: BookOpen },
-                            { id: 'cooking', label: t('recipe.type.cooking', 'Kochen'), icon: Utensils },
-                            { id: 'baking', label: t('recipe.type.baking', 'Backen'), icon: Cake },
-                        ]}
-                    />
-                </div>
-
-                <Link to="/recipe/new">
-                    <Button size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('dashboard.create_btn')}>
-                        <Plus className="w-4 h-4" />
-                    </Button>
-                </Link>
+            {/* Tabs & Actions */}
+            <div className="mb-6">
+                <GlassTabs
+                    activeTab={activeTab}
+                    onChange={(id) => { setActiveTab(id as any); setPage(1); }}
+                    tabs={[
+                        { id: 'discover', label: t('dashboard.discover', 'Entdecken'), icon: Compass },
+                        { id: 'my_recipes', label: t('dashboard.my_recipes', 'Meine Rezepte'), icon: BookOpen },
+                        { id: 'cooking', label: t('recipe.type.cooking', 'Kochen'), icon: Utensils },
+                        { id: 'baking', label: t('recipe.type.baking', 'Backen'), icon: Cake },
+                    ]}
+                >
+                    <Link to="/recipe/new">
+                        <Button size="sm" className="h-9 w-9 p-0 rounded-md shadow-sm" title={t('dashboard.create_btn')}>
+                            <Plus className="w-4 h-4" />
+                        </Button>
+                    </Link>
+                </GlassTabs>
             </div>
 
             {/* Search & Sort Controls */}

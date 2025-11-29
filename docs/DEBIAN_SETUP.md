@@ -71,8 +71,8 @@ This guide explains how to deploy Bake'n'Cook directly on a Debian or Ubuntu ser
 
     Run this command to configure the permission (it creates a dedicated config file):
     ```bash
-    echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart bakencook-backend" | sudo tee /etc/sudoers.d/bakencook-backend
-    sudo chmod 0440 /etc/sudoers.d/bakencook-backend
+    echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart bakencook-backend, /usr/bin/systemctl restart bakencook-backend --no-ask-password" | sudo tee /etc/sudoers.d/bakencook-update
+    sudo chmod 0440 /etc/sudoers.d/bakencook-update
     ```
 
     **Verify Permissions:**

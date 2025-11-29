@@ -407,7 +407,10 @@ export default function Planer() {
 
 
     return (
-        <div className="space-y-6 pb-20 h-[calc(100vh-140px)] flex flex-col">
+        <div className={cn(
+            "space-y-6 pb-20 flex flex-col",
+            activeTab === 'calendar' ? "h-[calc(100vh-140px)]" : "min-h-[calc(100vh-140px)]"
+        )}>
             {/* Tabs & Actions */}
             <div className="flex items-center justify-between bg-muted/50 rounded-lg p-1 w-full">
                 <div className="flex">

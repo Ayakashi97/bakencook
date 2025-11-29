@@ -25,7 +25,7 @@ echo "Project Directory: $PROJECT_DIR"
 # 1. Backup Database
 echo "Creating database backup..."
 if [ -f "$SCRIPT_DIR/backup_db.sh" ]; then
-    bash "$SCRIPT_DIR/backup_db.sh"
+    bash "$SCRIPT_DIR/backup_db.sh" || echo "WARNING: Database backup failed! Proceeding with update..."
 else
     echo "Warning: backup_db.sh not found. Skipping backup."
 fi
@@ -61,6 +61,20 @@ fi
 
 # Run Migrations
 echo "Running Database Migrations..."
+
+# Stop backend service if configured to release DB locks
+if [ -n "$BACKEND_SERVICE_NAME" ]; then
+    echo "Stopping service: $BACKEND_SERVICE_NAME to release DB locks..."
+    if command -v systemctl &> /dev/null; then
+        if systemctl stop "$BACKEND_SERVICE_NAME" --no-ask-password 2>/dev/null; then
+            echo "Service stopped."
+        elif sudo -n systemctl stop "$BACKEND_SERVICE_NAME" --no-ask-password 2>/dev/null; then
+            echo "Service stopped (with sudo)."
+        else
+            echo "Warning: Could not stop service automatically. Migration might hang if DB is locked."
+        fi
+    fi
+fi
 # Check if alembic is initialized
 if [ -f "alembic.ini" ]; then
     # If this is the first run, we might need to stamp the DB if it already exists

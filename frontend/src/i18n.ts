@@ -324,6 +324,8 @@ i18n
                     "edit.save_btn": "Save Recipe",
                     "edit.save_success": "Recipe saved successfully",
                     "edit.save_error": "Failed to save recipe",
+                    "edit.ai_disabled": "AI is disabled",
+                    "edit.ai_disabled_desc": "AI is disabled in the system configuration.",
                     "planer.title": "Plan Your Schedule",
                     "planer.config": "Configuration",
                     "planer.select_recipe": "Select Recipe",
@@ -861,7 +863,8 @@ i18n
                     "edit.save_btn": "Rezept speichern",
                     "edit.save_success": "Rezept erfolgreich gespeichert",
                     "edit.save_error": "Rezept konnte nicht gespeichert werden",
-
+                    "edit.ai_disabled": "AI ist deaktiviert",
+                    "edit.ai_disabled_desc": "AI ist deaktiviert in der Systemkonfiguration.",
                     // Planner
                     "planer.title": "Planer",
                     "planer.config": "Konfiguration",

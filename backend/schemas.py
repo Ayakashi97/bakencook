@@ -319,6 +319,12 @@ class SystemInfo(BaseModel):
     message: Optional[str] = None
     services: Optional[Dict[str, str]] = None
 
+class SystemConfig(BaseModel):
+    enable_ai: bool
+    enable_registration: bool
+    allow_guest_access: bool
+    app_name: str
+
 class SystemSetting(BaseModel):
     key: str
     value: str

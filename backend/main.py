@@ -1206,6 +1206,16 @@ def create_import_job(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_user_for_automation)
 ):
+    # Check if AI is enabled
+    ai_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "enable_ai").first()
+    if not ai_setting or ai_setting.value.lower() != "true":
+        raise HTTPException(status_code=400, detail="AI automation is disabled")
+
+    # Check if API Key is configured
+    api_key_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "gemini_api_key").first()
+    if not api_key_setting or not api_key_setting.value:
+        raise HTTPException(status_code=400, detail="AI API Key not configured")
+
     # Create Job
     job = models.ImportJob(
         user_id=current_user.id,
@@ -2469,6 +2479,19 @@ def get_system_info(db: Session = Depends(get_db)):
             "scraper": scraper_status
         },
         "update_available": False # Default to false, client can trigger check
+    }
+
+@app.get("/system/config", response_model=schemas.SystemConfig)
+def get_public_config(db: Session = Depends(get_db)):
+    # Fetch settings
+    settings = db.query(models.SystemSetting).all()
+    settings_dict = {s.key: s.value for s in settings}
+    
+    return {
+        "enable_ai": settings_dict.get("enable_ai", "false").lower() == "true",
+        "enable_registration": settings_dict.get("enable_registration", "true").lower() == "true",
+        "allow_guest_access": settings_dict.get("allow_guest_access", "false").lower() == "true",
+        "app_name": settings_dict.get("app_name", "BakeAssist")
     }
 
 @app.post("/admin/system/check-update")

@@ -22,6 +22,18 @@ export default function RecipeEdit() {
     const queryClient = useQueryClient();
     const isNew = !id;
 
+    const { data: systemConfig } = useQuery({
+        queryKey: ['systemConfig'],
+        queryFn: async () => {
+            const res = await api.get('/system/config');
+            return res.data;
+        }
+    });
+
+    const isAiEnabled = systemConfig?.enable_ai === true;
+
+
+
     const [formData, setFormData] = useState<RecipeCreate>({
         title: '',
         source_url: '',
@@ -438,11 +450,14 @@ export default function RecipeEdit() {
                 }
             />
 
+
+
             {isNew && (
-                <div className="bg-muted/50 p-6 rounded-lg border mb-8">
+                <div className={cn("bg-muted/50 p-6 rounded-lg border mb-8", !isAiEnabled && "opacity-75")}>
                     <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Wand2 className="h-5 w-5 text-purple-500" />
+                        <Wand2 className={cn("h-5 w-5", isAiEnabled ? "text-purple-500" : "text-muted-foreground")} />
                         {t('edit.magic_import')}
+                        {!isAiEnabled && <span className="text-xs font-normal text-muted-foreground ml-2">({t('edit.ai_disabled') || "AI Disabled"})</span>}
                     </h2>
                     <div className="flex gap-2">
                         <input
@@ -451,18 +466,19 @@ export default function RecipeEdit() {
                             className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             value={importUrl}
                             onChange={(e) => setImportUrl(e.target.value)}
+                            disabled={!isAiEnabled}
                         />
                         <Button
                             onClick={handleImport}
-                            disabled={isImporting || !importUrl}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                            disabled={isImporting || !importUrl || !isAiEnabled}
+                            className={cn("text-white", isAiEnabled ? "bg-purple-600 hover:bg-purple-700" : "bg-muted-foreground")}
                         >
                             {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
                             {t('edit.import_btn')}
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                        {t('edit.import_desc')}
+                        {isAiEnabled ? t('edit.import_desc') : (t('edit.ai_disabled_desc') || "AI automation is currently disabled by the administrator.")}
                     </p>
                 </div>
             )}

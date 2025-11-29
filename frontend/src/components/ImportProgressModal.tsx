@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, Circle } from 'lucide-react';
+import { Loader2, CheckCircle2, Circle, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { createPortal } from 'react-dom';
@@ -7,16 +7,22 @@ import { createPortal } from 'react-dom';
 interface ImportProgressModalProps {
     isOpen: boolean;
     onClose: () => void;
-    status: 'idle' | 'scraping' | 'analyzing' | 'completed' | 'error';
+    status: 'idle' | 'checking' | 'scraping' | 'analyzing' | 'completed' | 'error' | 'duplicate';
     error?: string;
+    duplicateRecipeId?: string | null;
+    redirectCountdown?: number;
+    successCountdown?: number;
+    onRedirect?: () => void;
+    onCancel?: () => void;
 }
 
-export function ImportProgressModal({ isOpen, onClose, status, error }: ImportProgressModalProps) {
+export function ImportProgressModal({ isOpen, onClose, status, error, duplicateRecipeId, redirectCountdown, successCountdown, onRedirect, onCancel }: ImportProgressModalProps) {
     const { t } = useTranslation();
     const [steps, setSteps] = useState([
-        { id: 'scraping', label: 'Scraping Website', status: 'pending' },
-        { id: 'analyzing', label: 'Analyzing with AI', status: 'pending' },
-        { id: 'completed', label: 'Import Completed', status: 'pending' }
+        { id: 'checking', label: t('import.step_checking', 'Checking for duplicates'), status: 'pending' },
+        { id: 'scraping', label: t('import.step_scraping', 'Scraping Website'), status: 'pending' },
+        { id: 'analyzing', label: t('import.step_analyzing', 'Analyzing with AI'), status: 'pending' },
+        { id: 'completed', label: t('import.step_completed', 'Import Completed'), status: 'pending' }
     ]);
 
     useEffect(() => {
@@ -28,18 +34,31 @@ export function ImportProgressModal({ isOpen, onClose, status, error }: ImportPr
         setSteps(prev => {
             const newSteps = [...prev];
 
-            if (status === 'scraping') {
+            if (status === 'checking') {
                 newSteps[0].status = 'current';
                 newSteps[1].status = 'pending';
                 newSteps[2].status = 'pending';
-            } else if (status === 'analyzing') {
+                newSteps[3].status = 'pending';
+            } else if (status === 'duplicate') {
+                newSteps[0].status = 'warning';
+                newSteps[1].status = 'pending';
+                newSteps[2].status = 'pending';
+                newSteps[3].status = 'pending';
+            } else if (status === 'scraping') {
                 newSteps[0].status = 'completed';
                 newSteps[1].status = 'current';
                 newSteps[2].status = 'pending';
+                newSteps[3].status = 'pending';
+            } else if (status === 'analyzing') {
+                newSteps[0].status = 'completed';
+                newSteps[1].status = 'completed';
+                newSteps[2].status = 'current';
+                newSteps[3].status = 'pending';
             } else if (status === 'completed') {
                 newSteps[0].status = 'completed';
                 newSteps[1].status = 'completed';
                 newSteps[2].status = 'completed';
+                newSteps[3].status = 'completed';
             } else if (status === 'error') {
                 // Find the current step and mark as error
                 const currentIdx = newSteps.findIndex(s => s.status === 'current');
@@ -70,13 +89,15 @@ export function ImportProgressModal({ isOpen, onClose, status, error }: ImportPr
                                 {step.status === 'current' && <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />}
                                 {step.status === 'pending' && <Circle className="w-4 h-4 text-muted-foreground" />}
                                 {step.status === 'error' && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                                {step.status === 'warning' && <AlertTriangle className="w-5 h-5 text-yellow-500" />}
                             </div>
                             <span className={cn(
                                 "text-sm font-medium",
                                 step.status === 'completed' && "text-foreground",
                                 step.status === 'current' && "text-purple-600",
                                 step.status === 'pending' && "text-muted-foreground",
-                                step.status === 'error' && "text-red-500"
+                                step.status === 'error' && "text-red-500",
+                                step.status === 'warning' && "text-yellow-600 dark:text-yellow-500"
                             )}>
                                 {step.label}
                             </span>
@@ -91,12 +112,17 @@ export function ImportProgressModal({ isOpen, onClose, status, error }: ImportPr
                 )}
 
                 {status === 'completed' && (
-                    <button
-                        onClick={onClose}
-                        className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
-                    >
-                        {t('common.continue', 'Continue')}
-                    </button>
+                    <div className="space-y-4 pt-2 border-t">
+                        <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-500 text-sm rounded-md border border-green-500/20">
+                            {t('import.success_redirect_msg', { seconds: successCountdown })}
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
+                        >
+                            {t('common.continue', 'Continue')}
+                        </button>
+                    </div>
                 )}
 
                 {status === 'error' && (
@@ -106,6 +132,27 @@ export function ImportProgressModal({ isOpen, onClose, status, error }: ImportPr
                     >
                         {t('common.close', 'Close')}
                     </button>
+                )}
+                {status === 'duplicate' && (
+                    <div className="space-y-4 pt-2 border-t">
+                        <div className="p-3 bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 text-sm rounded-md border border-yellow-500/20">
+                            {t('edit.duplicate_msg', { seconds: redirectCountdown })}
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={onCancel}
+                                className="px-4 py-2 rounded-md hover:bg-muted text-sm font-medium transition-colors"
+                            >
+                                {t('edit.stay')}
+                            </button>
+                            <button
+                                onClick={onRedirect}
+                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 text-sm font-medium transition-colors"
+                            >
+                                {t('edit.go_now')}
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>,

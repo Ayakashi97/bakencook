@@ -3,16 +3,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Recipe } from '../lib/api';
 import {
     format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-    eachDayOfInterval, addMonths, addWeeks, subWeeks,
-    addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay
+    eachDayOfInterval, addMonths, addWeeks, subWeeks, subMonths,
+    addDays, subDays, isSameMonth, isSameDay, isToday, startOfDay, endOfDay, addMinutes
 } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Search, Check, Pencil, Clock, Trash2, ChefHat } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X, Search, Check, Pencil, Clock, Trash2, ChefHat, List, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { Timeline, TimelineEvent } from '../components/Timeline';
 
 interface Schedule {
     id: string;
@@ -26,7 +27,8 @@ interface Schedule {
     real_temperature?: number;
 }
 
-type ViewMode = 'month' | 'week' | 'day' | 'list';
+type ViewMode = 'month' | 'week' | 'day';
+type Tab = 'calendar' | 'list' | 'timeline';
 
 export default function Planer() {
     const { t, i18n } = useTranslation();
@@ -38,6 +40,7 @@ export default function Planer() {
     const [view, setView] = useState<ViewMode>(() => {
         return (localStorage.getItem('planner_view') as ViewMode) || 'month';
     });
+    const [activeTab, setActiveTab] = useState<Tab>('calendar');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -53,6 +56,7 @@ export default function Planer() {
     const [targetTime, setTargetTime] = useState('');
     const [timeMode, setTimeMode] = useState<'start' | 'target'>('target');
     const [realTemperature, setRealTemperature] = useState<number>(20);
+    const [showPastEvents, setShowPastEvents] = useState(false);
 
     // Recurrence State
     const [isRecurring, setIsRecurring] = useState(false);
@@ -80,8 +84,8 @@ export default function Planer() {
         },
     });
 
-    const { data: schedules, isLoading } = useQuery<Schedule[]>({
-        queryKey: ['schedules', view, currentDate.toISOString()], // Refetch when view/date changes
+    const { data: schedules, isLoading, refetch } = useQuery<Schedule[]>({
+        queryKey: ['schedules', view, currentDate.toISOString(), activeTab, showPastEvents], // Refetch when view/date/tab changes
         queryFn: async () => {
             // Calculate range based on view
             let start = new Date();
@@ -93,10 +97,14 @@ export default function Planer() {
             } else if (view === 'week') {
                 start = startOfWeek(currentDate, { weekStartsOn: 1 });
                 end = endOfWeek(currentDate, { weekStartsOn: 1 });
-            } else if (view === 'list') {
+
+            } else if (activeTab === 'list') {
+                start = showPastEvents ? subMonths(new Date(), 6) : new Date(); // Look back 6 months if enabled
+                end = addMonths(new Date(), 6); // Look ahead 6 months
+            } else if (activeTab === 'timeline') {
                 start = new Date(); // Start from now
                 end = addMonths(new Date(), 6); // Look ahead 6 months
-            } else {
+            } else { // Day view
                 start = startOfDay(currentDate);
                 end = endOfDay(currentDate);
             }
@@ -131,40 +139,84 @@ export default function Planer() {
         schedules.forEach(schedule => {
             // Parse base times
             const targetTime = parseISO(schedule.target_time);
-            // Default duration for custom events or recipes in month view (e.g. 1 hour)
 
+            // ALWAYS show single block for recipes in the main calendar grid
+            // regardless of view mode (month/week/day)
+            events.push({
+                id: schedule.id,
+                title: schedule.recipe ? schedule.recipe.title : (schedule.title || 'Event'),
+                start: subDays(targetTime, 0),
+                end: targetTime,
+                type: schedule.event_type === 'baking' ? 'recipe' : 'custom',
+                recipeId: schedule.recipe_id,
+                scheduleId: schedule.id,
+                isStep: false
+            });
+        });
 
-            if (view === 'month' || view === 'list' || schedule.event_type === 'custom' || !schedule.recipe) {
-                // Month view OR Custom Event OR Missing Recipe Data -> Show single block
+        return events;
+    };
+
+    const getTimelineEvents = () => {
+        if (!schedules) return [];
+        const events: TimelineEvent[] = [];
+
+        // Filter schedules relevant to current view
+        const relevantSchedules = schedules.filter(s => {
+            const time = parseISO(s.target_time);
+            if (view === 'day') {
+                return isSameDay(time, currentDate);
+            } else if (view === 'week') {
+                const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+                const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+                return time >= start && time <= end;
+            } else if (view === 'month') {
+                return isSameMonth(time, currentDate);
+            }
+            return false;
+        });
+
+        // For Timeline tab, we want ALL future events, similar to List view
+        // But if we are in Calendar tab (week/day view), we want specific events
+        let schedulesToProcess = relevantSchedules;
+
+        if (activeTab === 'timeline') {
+            schedulesToProcess = schedules.filter(s => {
+                const time = parseISO(s.target_time);
+                return time >= new Date(); // Future only
+            });
+        }
+
+        schedulesToProcess.forEach(schedule => {
+            const targetTime = parseISO(schedule.target_time);
+
+            if (schedule.event_type === 'custom' || !schedule.recipe) {
+                // Add custom events to timeline too
                 events.push({
                     id: schedule.id,
-                    title: schedule.recipe ? schedule.recipe.title : (schedule.title || 'Event'),
-                    start: subDays(targetTime, 0), // simplified, ideally use start_time if available
+                    title: schedule.title || 'Event',
+                    start: targetTime,
                     end: targetTime,
-                    type: schedule.event_type === 'baking' ? 'recipe' : 'custom',
-                    recipeId: schedule.recipe_id,
+                    type: 'custom',
                     scheduleId: schedule.id,
                     isStep: false
                 });
             } else {
-                // Week/Day View AND Recipe -> Expand Steps
-                // We work backwards from target_time
+                // Expand steps for Timeline
                 let currentTime = targetTime;
 
-                // Flatten steps from all chapters
-                // Let's assume chapters are ordered, and steps within chapters are ordered.
                 const sortedSteps = schedule.recipe.chapters
                     .sort((a, b) => a.order_index - b.order_index)
                     .flatMap(ch => ch.steps.sort((a, b) => a.order_index - b.order_index))
-                    .reverse(); // Process backwards
+                    .reverse();
 
                 sortedSteps.forEach((step, index) => {
                     let duration = step.duration_min;
 
-                    // Apply Temperature Adjustment for Passive Steps
+                    // Apply Temperature Adjustment
                     if (step.type === 'passive') {
                         const refTemp = schedule.recipe?.reference_temperature || 20;
-                        const realTemp = (schedule as any).real_temperature || refTemp; // Use schedule's real temp if available
+                        const realTemp = (schedule as any).real_temperature || refTemp;
                         const factor = Math.pow(0.5, (realTemp - refTemp) / 5);
                         duration = Math.round(step.duration_min * factor);
                     }
@@ -174,13 +226,14 @@ export default function Planer() {
 
                     events.push({
                         id: `${schedule.id}_step_${step.id || index}`,
-                        title: step.description, // Or step name if available? Step only has description.
+                        title: step.description,
                         start: startTime,
                         end: currentTime,
-                        type: step.type, // 'active', 'passive', 'baking'
+                        type: step.type,
                         recipeId: schedule.recipe_id,
                         scheduleId: schedule.id,
-                        isStep: true
+                        isStep: true,
+                        recipeTitle: schedule.recipe?.title
                     });
 
                     currentTime = startTime;
@@ -188,8 +241,10 @@ export default function Planer() {
             }
         });
 
-        return events;
+        return events.sort((a, b) => a.start.getTime() - b.start.getTime());
     };
+
+    const timelineEvents = getTimelineEvents();
 
     const processedEvents = getProcessedEvents();
 
@@ -220,12 +275,29 @@ export default function Planer() {
                 }
             }
 
+            let finalTargetTime = targetTime + ":00Z";
+
+            // If mode is 'start' and we have a recipe, calculate target time based on duration
+            if (timeMode === 'start' && eventType === 'recipe' && selectedRecipeId) {
+                const recipe = recipes?.find(r => r.id === selectedRecipeId);
+                if (recipe) {
+                    // Calculate total duration
+                    const totalDuration = recipe.chapters.reduce((acc, chapter) => {
+                        return acc + chapter.steps.reduce((sAcc, step) => sAcc + step.duration_min, 0);
+                    }, 0);
+
+                    const startDate = parseISO(targetTime);
+                    const targetDate = addMinutes(startDate, totalDuration);
+                    finalTargetTime = format(targetDate, "yyyy-MM-dd'T'HH:mm:00'Z'");
+                }
+            }
+
             const payload = {
-                recipe_id: eventType === 'recipe' ? selectedRecipeId : null,
+                recipe_id: (eventType === 'recipe' && selectedRecipeId) ? selectedRecipeId : null,
                 title: eventType === 'custom' ? customTitle : null,
                 event_type: eventType === 'recipe' ? 'baking' : 'custom',
-                target_time: targetTime + ":00Z",
-                start_time: targetTime + ":00Z",
+                target_time: finalTargetTime,
+                start_time: finalTargetTime, // Backend might use this or target_time, but usually target_time is key for baking
                 recurrence_rule: rrule,
                 real_temperature: eventType === 'recipe' ? realTemperature : null
             };
@@ -297,6 +369,10 @@ export default function Planer() {
         setShowAddModal(true);
     };
 
+    // Validation Logic
+    const isValid = targetTime &&
+        ((eventType === 'recipe' && selectedRecipeId) || (eventType === 'custom' && customTitle));
+
     // Keyboard Shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -308,10 +384,6 @@ export default function Planer() {
 
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault(); // Prevent browser save
-                // Check validity before saving
-                const isValid = targetTime &&
-                    ((eventType === 'recipe' && selectedRecipeId) || (eventType === 'custom' && customTitle));
-
                 if (isValid) {
                     createScheduleMutation.mutate();
                 }
@@ -320,7 +392,7 @@ export default function Planer() {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showAddModal, targetTime, eventType, selectedRecipeId, customTitle, createScheduleMutation]);
+    }, [showAddModal, isValid, createScheduleMutation]);
 
     // Navigation Logic
     const next = () => {
@@ -356,147 +428,102 @@ export default function Planer() {
 
 
     return (
-        <div className="space-y-6 pb-20 h-[calc(100vh-140px)] flex flex-col">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 glass-card p-4 rounded-xl">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <CalendarIcon className="h-6 w-6 text-primary" />
-                        <span className="capitalize">
-                            {format(currentDate, view === 'day' ? 'PPPP' : 'MMMM yyyy', { locale })}
-                        </span>
-                    </h1>
-                    <div className="flex items-center bg-muted/50 rounded-lg p-1 border">
-                        <button onClick={prev} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-                        {view !== 'list' && (
-                            <button onClick={today} className="px-3 py-1 text-sm font-medium hover:bg-background rounded-md transition-colors">{t('common.today') || "Today"}</button>
+        <div className={cn(
+            "space-y-6 pb-20 flex flex-col",
+            activeTab === 'calendar' ? "h-[calc(100vh-140px)]" : "min-h-[calc(100vh-140px)]"
+        )}>
+            {/* Tabs & Actions */}
+            <div className="flex items-center justify-between bg-muted/50 rounded-lg p-1 w-full">
+                <div className="flex">
+                    <button
+                        onClick={() => setActiveTab('calendar')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'calendar' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                         )}
-                        <button onClick={next} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronRight className="w-5 h-5" /></button>
-                    </div>
+                    >
+                        <CalendarIcon className="w-4 h-4" />
+                        {t('planer.tab_calendar') || 'Calendar'}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('list')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <List className="w-4 h-4" />
+                        {t('planer.tab_list') || 'List'}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('timeline')}
+                        className={cn(
+                            "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+                            activeTab === 'timeline' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <Activity className="w-4 h-4" />
+                        {t('planer.tab_timeline') || 'Timeline'}
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="flex bg-muted/50 rounded-lg p-1 border mr-auto md:mr-0">
-                        {(['month', 'week', 'day', 'list'] as ViewMode[]).map((v) => (
-                            <button
-                                key={v}
-                                onClick={() => setView(v)}
-                                className={cn(
-                                    "px-3 py-1.5 text-sm font-medium rounded-md transition-all capitalize",
-                                    view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                {t(`planer.view_${v}`)}
-                            </button>
-                        ))}
-                    </div>
-                    <Button onClick={() => handleAddEvent()} size="sm" className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden sm:inline">{t('planer.add_event')}</span>
-                    </Button>
-                </div>
+                <Button onClick={() => handleAddEvent()} size="sm" className="gap-2 ml-2">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('planer.add_event')}</span>
+                </Button>
             </div>
 
             {/* Calendar Grid */}
-            <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
-                {isLoading && (
-                    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                )}
-                {/* Weekday Headers */}
-                {view !== 'day' && view !== 'list' && (
-                    <div className="grid grid-cols-7 border-b bg-muted/30">
-                        {weekDays.map((day, i) => (
-                            <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground">
-                                {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEE', { locale })}
+            {activeTab === 'calendar' && (
+                <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-white/10">
+                        <div className="flex items-center gap-4">
+                            <h1 className="text-xl font-bold flex items-center gap-2">
+                                <CalendarIcon className="h-5 w-5 text-primary" />
+                                <span className="capitalize">
+                                    {format(currentDate, view === 'day' ? 'PPPP' : 'MMMM yyyy', { locale })}
+                                </span>
+                            </h1>
+                            <div className="flex items-center bg-muted/50 rounded-lg p-1 border">
+                                <button onClick={prev} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={today} className="px-3 py-1 text-xs font-medium hover:bg-background rounded-md transition-colors">{t('common.today') || "Today"}</button>
+                                <button onClick={next} className="p-1 hover:bg-background rounded-md transition-colors"><ChevronRight className="w-4 h-4" /></button>
                             </div>
-                        ))}
-                    </div>
-                )}
+                        </div>
 
-                {/* List View */}
-                {view === 'list' && (
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {processedEvents
-                            .filter(e => !e.isStep && e.start >= new Date()) // Only future main events
-                            .sort((a, b) => a.start.getTime() - b.start.getTime())
-                            .map(event => (
-                                <div
-                                    key={event.id}
+                        <div className="flex bg-muted/50 rounded-lg p-1 border">
+                            {(['month', 'week', 'day'] as ViewMode[]).map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => setView(v)}
                                     className={cn(
-                                        "flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-lg border hover:border-primary/50 transition-colors",
-                                        event.type === 'recipe' && "cursor-pointer hover:bg-white/60 dark:hover:bg-white/5"
+                                        "px-3 py-1.5 text-xs font-medium rounded-md transition-all capitalize",
+                                        view === v ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
                                     )}
-                                    onClick={() => {
-                                        if (event.type === 'recipe' && event.recipeId) {
-                                            navigate(`/recipe/${event.recipeId}`);
-                                        }
-                                    }}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex flex-col items-center justify-center w-12 h-12 bg-primary/10 rounded-lg text-primary">
-                                            <span className="text-xs font-bold uppercase">{format(event.start, 'MMM')}</span>
-                                            <span className="text-lg font-bold">{format(event.start, 'd')}</span>
-                                        </div>
-                                        <div>
-                                            <h3 className="font-medium">{event.title}</h3>
-                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                                                <Clock className="w-3 h-3" />
-                                                {format(event.start, 'HH:mm')}
-                                                {event.type === 'recipe' && (
-                                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] uppercase font-bold">
-                                                        {t('planer.type_recipe')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingEventId(event.scheduleId);
-                                                const original = schedules?.find(s => s.id === event.scheduleId);
-                                                if (original) {
-                                                    setEventType(original.event_type as any);
-                                                    setCustomTitle(original.title || '');
-                                                    setSelectedRecipeId(original.recipe_id || '');
-                                                    setTargetTime(format(parseISO(original.target_time), "yyyy-MM-dd'T'HH:mm"));
-                                                    setIsRecurring(!!original.recurrence_rule);
-                                                    setShowAddModal(true);
-                                                }
-                                            }}
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDeletingEventId(event.scheduleId);
-                                                setShowDeleteModal(true);
-                                            }}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </div>
+                                    {t(`planer.view_${v}`)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                    )}
+                    {/* Weekday Headers */}
+                    {view !== 'day' && (
+                        <div className="grid grid-cols-7 border-b bg-muted/30">
+                            {weekDays.map((day, i) => (
+                                <div key={day} className="py-3 text-center text-sm font-semibold text-muted-foreground">
+                                    {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'EEE', { locale })}
                                 </div>
                             ))}
-                        {processedEvents.filter(e => !e.isStep && e.start >= new Date()).length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                                {t('planer.no_events')}
-                            </div>
-                        )}
-                    </div>
-                )}
+                        </div>
+                    )}
 
-                {/* Days Grid */}
-                {view !== 'list' && (
+                    {/* Days Grid */}
                     <div className={cn(
                         "flex-1 grid overflow-y-auto",
                         view === 'month' ? "grid-cols-7 auto-rows-fr" : view === 'week' ? "grid-cols-7" : "grid-cols-1"
@@ -643,8 +670,106 @@ export default function Planer() {
                             );
                         })}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
+            {/* List View */}
+            {activeTab === 'list' && (
+                <div className="flex-1 glass-card rounded-xl overflow-hidden flex flex-col shadow-inner bg-white/30 dark:bg-black/20 relative">
+                    <div className="flex items-center justify-end p-2 border-b border-white/10">
+                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showPastEvents}
+                                onChange={(e) => setShowPastEvents(e.target.checked)}
+                                className="rounded border-input bg-background/50 text-primary focus:ring-primary/20"
+                            />
+                            {t('planer.show_past') || "Show Past Events"}
+                        </label>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {processedEvents
+                            .filter(e => !e.isStep && (showPastEvents || e.start >= new Date())) // Filter based on toggle
+                            .sort((a, b) => a.start.getTime() - b.start.getTime())
+                            .map(event => (
+                                <div
+                                    key={event.id}
+                                    className={cn(
+                                        "flex items-center justify-between p-3 bg-white/50 dark:bg-black/20 rounded-lg border hover:border-primary/50 transition-colors",
+                                        event.type === 'recipe' && "cursor-pointer hover:bg-white/60 dark:hover:bg-white/5"
+                                    )}
+                                    onClick={() => {
+                                        if (event.type === 'recipe' && event.recipeId) {
+                                            navigate(`/recipe/${event.recipeId}`);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col items-center justify-center w-12 h-12 bg-primary/10 rounded-lg text-primary">
+                                            <span className="text-xs font-bold uppercase">{format(event.start, 'MMM')}</span>
+                                            <span className="text-lg font-bold">{format(event.start, 'd')}</span>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium">{event.title}</h3>
+                                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                                <Clock className="w-3 h-3" />
+                                                {format(event.start, 'HH:mm')}
+                                                {event.type === 'recipe' && (
+                                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] uppercase font-bold">
+                                                        {t('planer.type_recipe')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingEventId(event.scheduleId);
+                                                const original = schedules?.find(s => s.id === event.scheduleId);
+                                                if (original) {
+                                                    setEventType(original.event_type === 'baking' ? 'recipe' : 'custom');
+                                                    setCustomTitle(original.title || '');
+                                                    setSelectedRecipeId(original.recipe_id || '');
+                                                    setTargetTime(format(parseISO(original.target_time), "yyyy-MM-dd'T'HH:mm"));
+                                                    setIsRecurring(!!original.recurrence_rule);
+                                                    setShowAddModal(true);
+                                                }
+                                            }}
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeletingEventId(event.scheduleId);
+                                                setShowDeleteModal(true);
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        {processedEvents.filter(e => !e.isStep && e.start >= new Date()).length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                {t('planer.no_events')}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Timeline View */}
+            {activeTab === 'timeline' && (
+                <Timeline events={timelineEvents} />
+            )}
 
 
 
@@ -941,7 +1066,7 @@ export default function Planer() {
                                 )}<Button variant="ghost" onClick={() => setShowAddModal(false)}>
                                     {t('common.cancel')}
                                 </Button>
-                                <Button onClick={() => createScheduleMutation.mutate()} disabled={createScheduleMutation.isPending}>
+                                <Button onClick={() => createScheduleMutation.mutate()} disabled={!isValid || createScheduleMutation.isPending}>
                                     {createScheduleMutation.isPending ? (
                                         <>
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

@@ -136,6 +136,7 @@ class IngredientBase(BaseModel):
     unit: str
     temperature: Optional[float] = None
     type: IngredientType
+    linked_recipe_id: Optional[UUID] = None
 
 class IngredientCreate(IngredientBase):
     pass

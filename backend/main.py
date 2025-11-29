@@ -86,7 +86,7 @@ app = FastAPI(title="Bake Assist API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -2201,6 +2201,12 @@ async def import_from_url(
         # 1. Scrape
         text_content = ""
         if request.url:
+            # Check for existing recipe
+            existing = db.query(models.Recipe).filter(models.Recipe.source_url == request.url, models.Recipe.user_id == current_user.id).first()
+            if existing:
+                import json
+                raise HTTPException(status_code=409, detail=json.dumps({"message": "Recipe exists", "recipe_id": str(existing.id)}))
+            
             text_content = await scrape_url(request.url)
         elif request.raw_text:
             text_content = request.raw_text
@@ -2217,7 +2223,30 @@ async def import_from_url(
         recipe_data = await parse_recipe_from_text(text_content, source_url=request.url, language=request.language, api_key=api_key)
         
         return recipe_data
+    except HTTPException as he:
+        raise he
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+
+class CheckUrlRequest(BaseModel):
+    url: str
+
+@app.post("/recipes/check-url")
+def check_recipe_url(
+    request: CheckUrlRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        # print(f"Checking URL: {request.url}")
+        existing = db.query(models.Recipe).filter(models.Recipe.source_url == request.url, models.Recipe.user_id == current_user.id).first()
+        if existing:
+            return {"exists": True, "recipe_id": str(existing.id)}
+        return {"exists": False, "recipe_id": None}
+    except Exception as e:
+        print(f"Error checking URL: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Schedule (Simple Calculation) ---

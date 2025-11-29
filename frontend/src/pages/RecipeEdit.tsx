@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api, RecipeCreate, Ingredient, Step } from '../lib/api';
-import { Loader2, Plus, Trash2, Wand2, Save, Search, Check, Image as ImageIcon, ChefHat, Utensils } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { NumberInput } from '../components/ui/NumberInput';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Loader2, Plus, Trash2, Save, Wand2, Check, Image as ImageIcon, ChefHat, Utensils, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IngredientFormModal } from '../components/IngredientFormModal';
 import { ImageUploadModal } from '../components/ImageUploadModal';
 import { ImportProgressModal } from '../components/ImportProgressModal';
-import { Button } from '../components/ui/Button';
-import { NumberInput } from '../components/ui/NumberInput';
-import { PageHeader } from '../components/ui/PageHeader';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { useKeyboardSave } from '../hooks/useKeyboardSave';
 
 export default function RecipeEdit() {
@@ -56,9 +56,17 @@ export default function RecipeEdit() {
 
     const [importUrl, setImportUrl] = useState('');
     const [isImporting, setIsImporting] = useState(false);
-    const [importStatus, setImportStatus] = useState<'idle' | 'scraping' | 'analyzing' | 'completed' | 'error'>('idle');
+    const [importStatus, setImportStatus] = useState<'idle' | 'checking' | 'scraping' | 'analyzing' | 'completed' | 'error' | 'duplicate'>('idle');
     const [importError, setImportError] = useState<string | undefined>(undefined);
     const [reviewMode, setReviewMode] = useState(false);
+
+    // Duplicate handling
+    const [duplicateRecipeId, setDuplicateRecipeId] = useState<string | null>(null);
+    const [redirectCountdown, setRedirectCountdown] = useState(5);
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Success handling
+    const [importedData, setImportedData] = useState<any>(null);
 
     const [availableIngredients, setAvailableIngredients] = useState<any[]>([]);
     const [availableUnits, setAvailableUnits] = useState<any[]>([]);
@@ -84,15 +92,13 @@ export default function RecipeEdit() {
                 const [ingRes, unitRes, recipeRes] = await Promise.all([
                     api.get('/admin/ingredients'),
                     api.get('/admin/units'),
-                    api.get('/recipes')
+                    api.get('/recipes?limit=1000')
                 ]);
                 setAvailableIngredients(ingRes.data);
                 setAvailableUnits(unitRes.data);
-                if (Array.isArray(recipeRes.data)) {
-                    setAvailableRecipes(recipeRes.data.filter((r: any) => r.id !== id));
-                } else {
-                    setAvailableRecipes([]);
-                }
+                // Handle paginated response for recipes
+                const recipes = recipeRes.data.items ? recipeRes.data.items : (Array.isArray(recipeRes.data) ? recipeRes.data : []);
+                setAvailableRecipes(recipes.filter((r: any) => r.id !== id));
             } catch (error) {
                 console.error('Failed to load form data', error);
             }
@@ -170,28 +176,63 @@ export default function RecipeEdit() {
         },
         onSuccess: (data) => {
             setImportStatus('completed');
-            // Delay closing to show completion state
-            setTimeout(() => {
-                // If import returns flat structure (legacy), wrap it
-                const importedData = data.data;
-                if (!importedData.chapters && (importedData.ingredients || importedData.steps)) {
-                    importedData.chapters = [{
-                        name: 'Imported Chapter',
-                        order_index: 0,
-                        ingredients: importedData.ingredients || [],
-                        steps: importedData.steps || []
-                    }];
-                    delete importedData.ingredients;
-                    delete importedData.steps;
-                }
-                setFormData(importedData);
-                setIsImporting(false);
-                setImportStatus('idle');
-                setReviewMode(true);
-                toast.success(t('admin.import_success'));
+
+            // Process data
+            const imported = data.data;
+            if (!imported.chapters && (imported.ingredients || imported.steps)) {
+                imported.chapters = [{
+                    name: 'Imported Chapter',
+                    order_index: 0,
+                    ingredients: imported.ingredients || [],
+                    steps: imported.steps || []
+                }];
+                delete imported.ingredients;
+                delete imported.steps;
+            }
+
+            setImportedData(imported);
+            setRedirectCountdown(5); // Reuse for success countdown
+
+            // Start countdown
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = setInterval(() => {
+                setRedirectCountdown((prev) => {
+                    if (prev <= 1) return 0;
+                    return prev - 1;
+                });
             }, 1000);
         },
         onError: (error: any) => {
+            if (error.response?.status === 409) {
+                try {
+                    const detail = JSON.parse(error.response.data.detail);
+                    const recipeId = detail.recipe_id;
+
+                    setImportStatus('duplicate');
+                    setDuplicateRecipeId(recipeId);
+                    setRedirectCountdown(5);
+                    setIsImporting(true); // Ensure modal is open
+
+                    // Clear any existing interval
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+                    countdownIntervalRef.current = setInterval(() => {
+                        setRedirectCountdown((prev) => {
+                            if (prev <= 1) {
+                                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                                navigate(`/recipe/${recipeId}`);
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+
+                    return;
+                } catch (e) {
+                    console.error("Failed to parse duplicate error", e);
+                }
+            }
+
             setImportStatus('error');
             setImportError(error.message || 'Import failed');
             // setIsImporting(false); // Keep open to show error
@@ -199,11 +240,68 @@ export default function RecipeEdit() {
         }
     });
 
-    const handleImport = () => {
+    // Handle redirect when countdown hits 0 (Duplicate)
+    useEffect(() => {
+        if (redirectCountdown === 0 && duplicateRecipeId && importStatus === 'duplicate') {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            navigate(`/recipe/${duplicateRecipeId}`);
+        }
+    }, [redirectCountdown, duplicateRecipeId, importStatus, navigate]);
+
+    // Handle success transition when countdown hits 0
+    useEffect(() => {
+        if (redirectCountdown === 0 && importStatus === 'completed' && importedData) {
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+            // Apply data and switch mode
+            setFormData(importedData);
+            setReviewMode(true);
+            setIsImporting(false);
+            setImportedData(null);
+        }
+    }, [redirectCountdown, importStatus, importedData]);
+
+    const handleImport = async () => {
         if (!importUrl) return;
+
         setIsImporting(true);
-        setImportStatus('idle');
+        setImportStatus('checking');
         setImportError(undefined);
+
+        try {
+            // Artificial delay to show "Checking" state
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Pre-check for duplicate
+            const checkRes = await api.post<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
+                url: importUrl
+            });
+
+            if (checkRes.data.exists && checkRes.data.recipe_id) {
+                // Open duplicate warning in same modal
+                setImportStatus('duplicate');
+                setDuplicateRecipeId(checkRes.data.recipe_id);
+                setRedirectCountdown(5);
+
+                // Clear any existing interval
+                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+                countdownIntervalRef.current = setInterval(() => {
+                    setRedirectCountdown((prev) => {
+                        if (prev <= 1) return 0;
+                        return prev - 1;
+                    });
+                }, 1000);
+                return;
+            }
+        } catch (error) {
+            console.error("Failed to check url", error);
+            setImportStatus('error');
+            setImportError(t('edit.check_failed', 'Failed to check for duplicates'));
+            return;
+        }
+
+        // Proceed with import
         importMutation.mutate(importUrl);
     };
 
@@ -723,6 +821,25 @@ export default function RecipeEdit() {
                                                                             {ing.name.en === getLocalizedName(ai.name, 1) && <Check className="h-4 w-4" />}
                                                                         </button>
                                                                     ))}
+
+                                                                {/* Recipes Section */}
+                                                                {availableRecipes.length > 0 && <div className="px-2 py-1 text-xs font-semibold text-muted-foreground border-t mt-1">{t('dashboard.recipes') || "Recipes"}</div>}
+                                                                {availableRecipes
+                                                                    .filter(r => r.title.toLowerCase().includes(comboboxSearch.toLowerCase()))
+                                                                    .map(r => (
+                                                                        <button
+                                                                            key={`recipe-${r.id}`}
+                                                                            type="button"
+                                                                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between"
+                                                                            onClick={() => handleIngredientSelect(chapterIdx, ingIdx, `recipe:${r.id}`)}
+                                                                        >
+                                                                            <span className="flex items-center gap-2">
+                                                                                <ChefHat className="w-3 h-3 text-muted-foreground" />
+                                                                                {r.title}
+                                                                            </span>
+                                                                            {ing.linked_recipe_id === r.id && <Check className="h-4 w-4" />}
+                                                                        </button>
+                                                                    ))}
                                                                 {comboboxSearch && !availableIngredients.some(ai => getLocalizedName(ai.name, 1).toLowerCase() === comboboxSearch.toLowerCase()) && (
                                                                     <button
                                                                         type="button"
@@ -854,9 +971,24 @@ export default function RecipeEdit() {
 
             <ImportProgressModal
                 isOpen={isImporting}
-                onClose={() => setIsImporting(false)}
+                onClose={() => {
+                    setIsImporting(false);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                }}
                 status={importStatus}
                 error={importError}
+                duplicateRecipeId={duplicateRecipeId}
+                redirectCountdown={redirectCountdown}
+                successCountdown={importStatus === 'completed' ? redirectCountdown : undefined}
+                onRedirect={() => {
+                    if (duplicateRecipeId) {
+                        navigate(`/recipe/${duplicateRecipeId}`);
+                    }
+                }}
+                onCancel={() => {
+                    setIsImporting(false);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                }}
             />
         </div >
     );

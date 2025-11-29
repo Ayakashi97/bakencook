@@ -2228,6 +2228,17 @@ async def import_from_url(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/recipes/check-url")
+def check_recipe_url(
+    url: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    existing = db.query(models.Recipe).filter(models.Recipe.source_url == url, models.Recipe.user_id == current_user.id).first()
+    if existing:
+        return {"exists": True, "recipe_id": str(existing.id)}
+    return {"exists": False, "recipe_id": None}
+
 # --- Schedule (Simple Calculation) ---
 
 @app.post("/schedule/calculate")

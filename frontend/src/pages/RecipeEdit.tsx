@@ -6,7 +6,6 @@ import { api, RecipeCreate, Ingredient, Step } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { NumberInput } from '../components/ui/NumberInput';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Modal } from '../components/Modal';
 import { Loader2, Plus, Trash2, Save, Wand2, Check, Image as ImageIcon, ChefHat, Utensils, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IngredientFormModal } from '../components/IngredientFormModal';
@@ -57,12 +56,11 @@ export default function RecipeEdit() {
 
     const [importUrl, setImportUrl] = useState('');
     const [isImporting, setIsImporting] = useState(false);
-    const [importStatus, setImportStatus] = useState<'idle' | 'scraping' | 'analyzing' | 'completed' | 'error'>('idle');
+    const [importStatus, setImportStatus] = useState<'idle' | 'checking' | 'scraping' | 'analyzing' | 'completed' | 'error' | 'duplicate'>('idle');
     const [importError, setImportError] = useState<string | undefined>(undefined);
     const [reviewMode, setReviewMode] = useState(false);
 
     // Duplicate handling
-    const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
     const [duplicateRecipeId, setDuplicateRecipeId] = useState<string | null>(null);
     const [redirectCountdown, setRedirectCountdown] = useState(5);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -204,10 +202,10 @@ export default function RecipeEdit() {
                     const detail = JSON.parse(error.response.data.detail);
                     const recipeId = detail.recipe_id;
 
-                    setImportStatus('idle'); // Reset status so we don't show error state in UI
+                    setImportStatus('duplicate');
                     setDuplicateRecipeId(recipeId);
                     setRedirectCountdown(5);
-                    setDuplicateModalOpen(true);
+                    setIsImporting(true); // Ensure modal is open
 
                     // Clear any existing interval
                     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -236,11 +234,46 @@ export default function RecipeEdit() {
         }
     });
 
-    const handleImport = () => {
+    const handleImport = async () => {
         if (!importUrl) return;
+
         setIsImporting(true);
-        setImportStatus('idle');
+        setImportStatus('checking');
         setImportError(undefined);
+
+        try {
+            // Pre-check for duplicate
+            const checkRes = await api.get<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
+                params: { url: importUrl }
+            });
+
+            if (checkRes.data.exists && checkRes.data.recipe_id) {
+                // Open duplicate warning in same modal
+                setImportStatus('duplicate');
+                setDuplicateRecipeId(checkRes.data.recipe_id);
+                setRedirectCountdown(5);
+
+                // Clear any existing interval
+                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+                countdownIntervalRef.current = setInterval(() => {
+                    setRedirectCountdown((prev) => {
+                        if (prev <= 1) {
+                            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                            navigate(`/recipe/${checkRes.data.recipe_id}`);
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return;
+            }
+        } catch (error) {
+            console.error("Failed to check url", error);
+            // Continue with import if check fails
+        }
+
+        // Proceed with import
         importMutation.mutate(importUrl);
     };
 
@@ -891,43 +924,24 @@ export default function RecipeEdit() {
 
             <ImportProgressModal
                 isOpen={isImporting}
-                onClose={() => setIsImporting(false)}
+                onClose={() => {
+                    setIsImporting(false);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                }}
                 status={importStatus}
                 error={importError}
-            />
-            {/* Duplicate Modal */}
-            {duplicateModalOpen && (
-                <Modal title={t('edit.duplicate_title')} onClose={() => {
-                    setDuplicateModalOpen(false);
+                duplicateRecipeId={duplicateRecipeId}
+                redirectCountdown={redirectCountdown}
+                onRedirect={() => {
+                    if (duplicateRecipeId) {
+                        navigate(`/recipe/${duplicateRecipeId}`);
+                    }
+                }}
+                onCancel={() => {
+                    setIsImporting(false);
                     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-                }}>
-                    <div className="space-y-6">
-                        <p className="text-muted-foreground">
-                            {t('edit.duplicate_msg', { seconds: redirectCountdown })}
-                        </p>
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setDuplicateModalOpen(false);
-                                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-                                }}
-                            >
-                                {t('edit.stay')}
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    if (duplicateRecipeId) {
-                                        navigate(`/recipe/${duplicateRecipeId}`);
-                                    }
-                                }}
-                            >
-                                {t('edit.go_now')}
-                            </Button>
-                        </div>
-                    </div>
-                </Modal>
-            )}
+                }}
+            />
         </div >
     );
 }

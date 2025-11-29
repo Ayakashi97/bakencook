@@ -6,7 +6,7 @@ import { api, RecipeCreate, Ingredient, Step } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { NumberInput } from '../components/ui/NumberInput';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Loader2, Plus, Trash2, Save, Wand2, Check, Image as ImageIcon, ChefHat, Utensils, Search } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, Wand2, Check, Image as ImageIcon, ChefHat, Utensils, Search, Upload, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IngredientFormModal } from '../components/IngredientFormModal';
 import { ImageUploadModal } from '../components/ImageUploadModal';
@@ -55,6 +55,8 @@ export default function RecipeEdit() {
     });
 
     const [importUrl, setImportUrl] = useState('');
+    const [importMode, setImportMode] = useState<'url' | 'image'>('url');
+    const [importImageFile, setImportImageFile] = useState<File | null>(null);
     const [isImporting, setIsImporting] = useState(false);
     const [importStatus, setImportStatus] = useState<'idle' | 'checking' | 'scraping' | 'analyzing' | 'completed' | 'error' | 'duplicate'>('idle');
     const [importError, setImportError] = useState<string | undefined>(undefined);
@@ -240,6 +242,57 @@ export default function RecipeEdit() {
         }
     });
 
+    const imageImportMutation = useMutation({
+        mutationFn: async (file: File) => {
+            setImportStatus('scraping'); // Reuse scraping status for "uploading/processing"
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('language', i18n.language.split('-')[0]);
+
+            // Simulate progress
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setImportStatus('analyzing');
+
+            return api.post('/import/image', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+        },
+        onSuccess: (data) => {
+            setImportStatus('completed');
+
+            // Process data
+            const imported = data.data;
+            if (!imported.chapters && (imported.ingredients || imported.steps)) {
+                imported.chapters = [{
+                    name: 'Imported Chapter',
+                    order_index: 0,
+                    ingredients: imported.ingredients || [],
+                    steps: imported.steps || []
+                }];
+                delete imported.ingredients;
+                delete imported.steps;
+            }
+
+            setImportedData(imported);
+            setRedirectCountdown(5);
+
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = setInterval(() => {
+                setRedirectCountdown((prev) => {
+                    if (prev <= 1) return 0;
+                    return prev - 1;
+                });
+            }, 1000);
+        },
+        onError: (error: any) => {
+            console.error("Image import failed", error);
+            setImportStatus('error');
+            setImportError(error.message || 'Image import failed');
+            toast.error(t('admin.import_error'));
+        }
+    });
+
     // Handle redirect when countdown hits 0 (Duplicate)
     useEffect(() => {
         if (redirectCountdown === 0 && duplicateRecipeId && importStatus === 'duplicate') {
@@ -262,47 +315,53 @@ export default function RecipeEdit() {
     }, [redirectCountdown, importStatus, importedData]);
 
     const handleImport = async () => {
-        if (!importUrl) return;
+        if (importMode === 'url') {
+            if (!importUrl) return;
 
-        setIsImporting(true);
-        setImportStatus('checking');
-        setImportError(undefined);
+            setIsImporting(true);
+            setImportStatus('checking');
+            setImportError(undefined);
 
-        try {
-            // Artificial delay to show "Checking" state
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            try {
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Pre-check for duplicate
-            const checkRes = await api.post<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
-                url: importUrl
-            });
+                const checkRes = await api.post<{ exists: boolean, recipe_id: string | null }>('/recipes/check-url', {
+                    url: importUrl
+                });
 
-            if (checkRes.data.exists && checkRes.data.recipe_id) {
-                // Open duplicate warning in same modal
-                setImportStatus('duplicate');
-                setDuplicateRecipeId(checkRes.data.recipe_id);
-                setRedirectCountdown(5);
+                if (checkRes.data.exists && checkRes.data.recipe_id) {
+                    setImportStatus('duplicate');
+                    setDuplicateRecipeId(checkRes.data.recipe_id);
+                    setRedirectCountdown(5);
 
-                // Clear any existing interval
-                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
-                countdownIntervalRef.current = setInterval(() => {
-                    setRedirectCountdown((prev) => {
-                        if (prev <= 1) return 0;
-                        return prev - 1;
-                    });
-                }, 1000);
+                    countdownIntervalRef.current = setInterval(() => {
+                        setRedirectCountdown((prev) => {
+                            if (prev <= 1) return 0;
+                            return prev - 1;
+                        });
+                    }, 1000);
+                    return;
+                }
+            } catch (error) {
+                console.error("Failed to check url", error);
+                setImportStatus('error');
+                setImportError(t('edit.check_failed', 'Failed to check for duplicates'));
                 return;
             }
-        } catch (error) {
-            console.error("Failed to check url", error);
-            setImportStatus('error');
-            setImportError(t('edit.check_failed', 'Failed to check for duplicates'));
-            return;
-        }
 
-        // Proceed with import
-        importMutation.mutate(importUrl);
+            importMutation.mutate(importUrl);
+        } else {
+            // Image Import
+            if (!importImageFile) return;
+
+            setIsImporting(true);
+            setImportStatus('checking'); // Just to show initial state
+            setImportError(undefined);
+
+            imageImportMutation.mutate(importImageFile);
+        }
     };
 
     const updateMutation = useMutation({
@@ -557,19 +616,88 @@ export default function RecipeEdit() {
                         {t('edit.magic_import')}
                         {!isAiEnabled && <span className="text-xs font-normal text-muted-foreground ml-2">({t('edit.ai_disabled') || "AI Disabled"})</span>}
                     </h2>
-                    <div className="flex gap-2">
-                        <input
-                            type="url"
-                            placeholder={t('edit.import_placeholder')}
-                            className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={importUrl}
-                            onChange={(e) => setImportUrl(e.target.value)}
-                            disabled={!isAiEnabled}
-                        />
+
+                    {/* Import Mode Tabs */}
+                    <div className="flex gap-4 mb-4 border-b pb-2">
+                        <button
+                            type="button"
+                            onClick={() => setImportMode('url')}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors relative",
+                                importMode === 'url' ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <FileText className="w-4 h-4" />
+                            URL Import
+                            {importMode === 'url' && <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-primary" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setImportMode('image')}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors relative",
+                                importMode === 'image' ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Upload className="w-4 h-4" />
+                            Image Import
+                            {importMode === 'image' && <div className="absolute bottom-[-9px] left-0 right-0 h-0.5 bg-primary" />}
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 items-start">
+                        {importMode === 'url' ? (
+                            <input
+                                type="url"
+                                placeholder={t('edit.import_placeholder')}
+                                className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                value={importUrl}
+                                onChange={(e) => setImportUrl(e.target.value)}
+                                disabled={!isAiEnabled}
+                            />
+                        ) : (
+                            <div className="flex-1">
+                                <div className="relative flex items-center justify-center w-full">
+                                    <label htmlFor="dropzone-file" className={cn(
+                                        "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-background hover:bg-muted/50 transition-colors",
+                                        importImageFile ? "border-primary/50 bg-primary/5" : "border-gray-300 dark:border-gray-600"
+                                    )}>
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            {importImageFile ? (
+                                                <>
+                                                    <ImageIcon className="w-8 h-8 mb-2 text-primary" />
+                                                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400 font-semibold">{importImageFile.name}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Click to change</p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" />
+                                                    <p className="mb-2 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG or WEBP</p>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input
+                                            id="dropzone-file"
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setImportImageFile(e.target.files[0]);
+                                                }
+                                            }}
+                                            disabled={!isAiEnabled}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
                         <Button
                             onClick={handleImport}
-                            disabled={isImporting || !importUrl || !isAiEnabled}
-                            className={cn("text-white", isAiEnabled ? "bg-purple-600 hover:bg-purple-700" : "bg-muted-foreground")}
+                            disabled={isImporting || (!importUrl && !importImageFile) || !isAiEnabled}
+                            className={cn("text-white h-10", isAiEnabled ? "bg-purple-600 hover:bg-purple-700" : "bg-muted-foreground")}
                         >
                             {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
                             {t('edit.import_btn')}
